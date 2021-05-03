@@ -1,0 +1,464 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+}
+
+form {
+    margin: 8px;
+}
+
+#memoContainer {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    background-color: rgba(180, 180, 180, 0.8);
+    padding: 15px;
+    overflow: hidden;
+}
+
+#floatButtonArea {
+    position: fixed;
+    right: 15px;
+    top: 15px;
+}
+#floatButtonArea > div {
+    margin: 0px 2px;
+    display: inline-block;
+    vertical-align: top;
+    width: 110px;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4);
+}
+
+#warningArea {
+    width: 100%;
+    height: 40px;
+    padding: 5px;
+    position: fixed;
+    bottom: 0;
+    display: none;
+    background-color: darkorange;
+    text-align: center;
+    font-size: 16px;
+    color: white;
+    font-weight: bold;
+}
+
+#left {
+    font-size: 30px;
+}
+
+#warningArea select,
+#warningArea input {
+    font-size: 11pt;
+    vertical-align: middle;
+}
+
+#memoMenu {
+    width: 100%;
+    margin: 0 auto;
+    font-size: 10px;
+}
+
+#memoMenu input,
+#memoMenu select,
+#buttonArea input {
+    font-size: 11px;
+}
+
+#memoTab {
+    margin-top: 15px;
+}
+
+#memoBody {
+    width: 100%;
+    height: calc(100% - 63px);
+    margin: 0 auto;
+}
+
+#logArea,
+#voteArea {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    margin: 0 auto;
+    background-color: white;
+    padding: 10px;
+    border-radius: 0px 8px 8px 8px;
+}
+#voteArea {
+    display: none;
+}
+
+#discussLogTable {
+    border-collapse: collapse;
+}
+#discussLogTable td {
+    text-align: left;
+    vertical-align: top;
+    color: black;
+    word-break: break-all;
+    font-size: 9pt;
+    line-height: 140%;
+    padding: 2px;
+}
+#discussLogTable font {
+    font-size: 9pt;
+}
+#discussLogTable tr td:first-of-type {
+    min-width: 150px;
+}
+#discussLogTable tr.systemlog td {
+    font-weight: bold;
+    background-color: var(--theme-color) !important;
+    color: white;
+    text-align: center;
+}
+
+#playerInfoTable a {
+    text-decoration: underline;
+    color: blue;
+    cursor: pointer;
+}
+#playerInfoTable tr.namerow td.death {
+    background-color: pink;
+}
+#playerInfoTable tr.namerow td.gray {
+    background-color: #e3e3e3;
+}
+#playerInfoTable select {
+    max-width: 100px;
+}
+
+#voteTable,
+#summaryTable {
+    font-size: 11px;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+    color: black;
+}
+#voteTable td,
+#summaryTable td {
+    border: 1px solid #666;
+    padding: 2px;
+}
+#toolArea_hid {
+    display: none;
+}
+#setting input[type="number"],
+#setting input[type="text"] {
+    width: 60px;
+}
+.coloredit,
+.iconsupport {
+    display: none;
+}
+.voiceloud {
+    padding: 0px 5px;
+}
+.voiceloud div:not(:first-of-type) {
+    margin-top: 5px;
+}
+.voice {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+    border: 1px solid black;
+    border-radius: 2px;
+    background-color: white;
+    line-height: 28px;
+    text-align: center;
+    color: black;
+    cursor: pointer;
+}
+.voice.voice_selected {
+    border: 3px solid red;
+    line-height: 24px;
+}
+#caspe input[type="text"] {
+    width: 100px;
+}
+#caspe input[type="number"] {
+    width: 50px;
+}
+.window {
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4);
+    border-top: 16px solid var(--theme-color);
+    background-color: #efefef;
+    padding: 10px;
+    display: none;
+}
+.southEast {
+    font-size: 13px;
+    position: fixed;
+    right: 10px;
+    bottom: 10px;
+    width: 400px;
+    height: 300px;
+}
+.north {
+    width: 400px;
+    height: 80px;
+    position: fixed;
+    left: calc(50% - 200px);
+    top: 15px;
+}
+#floatButtonArea a,
+.button {
+    width: 110px;
+    color: white;
+    background-color: var(--theme-color);
+    cursor: pointer;
+    display: inline-block;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 24px;
+    text-align: center;
+}
+div.button {
+    margin: 0px 2px;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4);
+    padding: 0px 3px;
+}
+.tab {
+    width: 150px;
+    color: white;
+    background-color: var(--theme-color);
+    cursor: pointer;
+    display: inline-block;
+    font-size: 12px;
+    line-height: 24px;
+    text-align: center;
+    border-radius: 8px 8px 0 0;
+}
+.tab.active {
+    color: var(--theme-color);
+    background-color: white;
+    font-weight: bold;
+}
+#floatButtonArea a:hover,
+div.button:hover {
+    background-color: var(--sub-color);
+}
+.closebutton {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+}
+#caspe img {
+    padding: 2px;
+}
+#caspe img.iconselected {
+    border: 2px solid var(--theme-color);
+    padding: 0px;
+}
+.jobinitial {
+    user-select: none;
+    color: var(--theme-color);
+    font-weight: bold;
+    font-size: 80%;
+}
+.jobinitial:not(:empty):before {
+    content: "[";
+}
+.jobinitial:not(:empty):after {
+    content: "]";
+}
+.black {
+    color: black;
+}
+.pink {
+    color: deeppink;
+}
+.red {
+    color: red;
+}
+.green {
+    color: green;
+}
+.purple {
+    color: purple;
+}
+.brown {
+    color: brown;
+}
+.blue {
+    color: blue;
+}
+.gaming {
+    background: linear-gradient(to right, #f33, #ff3, #3f3, #3ff, #33f, #f3f, #f33);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/*  -------------------------------- */
+/*      横に並べるレイアウトCSS       */
+/*  -------------------------------- */
+
+#memoContainer.layout-side #logArea {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+}
+#memoContainer.layout-side #playerInfoArea {
+    height: calc(100% - 50px);
+    overflow: auto hidden;
+    width: 50%;
+    padding: 0px;
+}
+#memoContainer.layout-side #playerInfoArea select {
+    font-size: 8.5pt;
+}
+#memoContainer.layout-side #buttonArea {
+    height: 50px;
+    font-size: 12px;
+    padding: 5px;
+}
+#memoContainer.layout-side #buttonArea > div {
+    margin-bottom: 5px;
+}
+#memoContainer.layout-side #discussLogArea {
+    width: 50%;
+    overflow: auto;
+    padding: 5px;
+}
+#memoContainer.layout-side .select {
+    color: var(--theme-color);
+    border-width: 2px 2px 2px 0px;
+    border-color: var(--theme-color);
+    border-style: solid;
+    background-color: white;
+    cursor: pointer;
+    text-align: center;
+    display: inline-block;
+    width: 100px;
+}
+#memoContainer.layout-side .select.active {
+    color: white;
+    background-color: var(--theme-color);
+    font-weight: bold;
+}
+#memoContainer.layout-side #buttonArea > div > div.select:first-of-type {
+    margin-left: 5px;
+    border-left: 2px solid var(--theme-color);
+}
+#memoContainer.layout-side #buttonArea > div > div.select:lastof-type {
+    margin-right: 5px;
+}
+#memoContainer.layout-side #playerInfoTable {
+    background-color: white;
+    text-align: center;
+    font-size: 8pt;
+    color: black;
+    width: 100%;
+    margin: 0px 2px 2px 0px;
+}
+#memoContainer.layout-side #playerInfoTable {
+    display: flex;
+    flex-direction: row;
+    border-spacing: 0;
+}
+#memoContainer.layout-side #playerInfoTable tr {
+    display: flex;
+    flex-direction: column;
+    width: 50px;
+}
+
+#memoContainer.layout-side #playerInfoTable tr.namerow {
+    width: 80px;
+    position: sticky;
+    left: 0;
+}
+#memoContainer.layout-side #playerInfoTable tr.namerow td {
+    background-color: white;
+    width: 80px;
+}
+
+#memoContainer.layout-side #playerInfoTable tr.resultrow {
+    display: flex;
+    flex-direction: column;
+    width: 130px;
+}
+
+#memoContainer.layout-side #playerInfoTable tr.resultrow > td {
+    width: 130px;
+}
+
+#memoContainer.layout-side #playerInfoTable td {
+    border-right: #666 solid 1px;
+    border-bottom: #666 solid 1px;
+    padding: 1px;
+    display: block;
+    height: 1.8em;
+    width: 50px;
+}
+#memoContainer.layout-side #playerInfoTable tr:first-of-type td {
+    border-left: #666 solid 1px;
+}
+#memoContainer.layout-side #playerInfoTable tr td:first-of-type {
+    border-top: #666 solid 1px;
+}
+
+/*  -------------------------------- */
+/*      普通のレイアウトCSS       */
+/*  -------------------------------- */
+
+#memoContainer.layout-normal #buttonArea {
+    padding: 10px;
+    line-height: 24px;
+    font-size: 9pt;
+}
+#memoContainer.layout-normal #buttonArea > div {
+    display: inline-block;
+}
+#memoContainer.layout-normal #playerInfoArea {
+    overflow: auto;
+}
+#memoContainer.layout-normal .select {
+    width: 100px;
+    color: var(--theme-color);
+    border-width: 2px 2px 2px 0px;
+    border-color: var(--theme-color);
+    border-style: solid;
+    background-color: white;
+    cursor: pointer;
+    display: inline-block;
+    font-size: 12px;
+    line-height: 20px;
+    text-align: center;
+}
+#memoContainer.layout-normal .select.active {
+    color: white;
+    background-color: var(--theme-color);
+    font-weight: bold;
+}
+#memoContainer.layout-normal #buttonArea > div > div.select:first-of-type {
+    margin-left: 5px;
+    border-left: 2px solid var(--theme-color);
+}
+#memoContainer.layout-normal #buttonArea > div > div.select:last-of-type {
+    margin-right: 5px;
+}
+#memoContainer.layout-normal #playerInfoTable {
+    background-color: white;
+    text-align: center;
+    font-size: 8pt;
+    border-collapse: collapse;
+    color: black;
+    margin: 0 auto;
+}
+#memoContainer.layout-normal #playerInfoTable td {
+    border: #666 solid 1px;
+    padding: 1px;
+}
+#memoContainer.layout-normal #playerInfoTable tr.namerow {
+    height: 35px;
+}
+#memoContainer.layout-normal #playerInfoTable tr td:first-child {
+    min-width: 50px;
+}

@@ -1,0 +1,29 @@
+{
+    "manifest_version": 2,
+    "name": "MeatMemo",
+    "description": "わかめて鯖での人狼ゲームを快適にする拡張機能です。操作方法などは「わかめてメモ」を参考にしています。",
+    "version": "1.0.1",
+    "icons": {
+        "16": "icon/icon_16.png",
+        "48": "icon/icon_48.png",
+        "128": "icon/icon_128.png"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "http://jinrou.dip.jp/~jinrou/cgi_jinro.cgi",
+                "http://61.215.66.131/~jinrou/cgi_jinro.cgi",
+                "http://www7a.biglobe.ne.jp/~kuri/cgi_jinro.cgi"
+            ],
+            "js": [
+                "jquery.js",
+                "meatmemo.js"
+            ],
+            "css": [
+                "rewrite.css",
+                "meatmemo.css"
+            ]
+        }
+    ],
+    "permissions": []
+}
