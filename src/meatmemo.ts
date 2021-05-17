@@ -10,7 +10,7 @@ Array.prototype.fillundef = function (def, lastindex) {
     }
 }
 
-function createSelectBox(option:Record<string, string>, selected:number | string,  attr: {[key:string]:string}) {
+function createSelectBox(option:Record<string, string>, selected:number | string,  attr: Record<string, string>) {
     //optionを持つselectを作る。str。optionは{value: innerHTML}の形式で
     let attrtext = ""
     for (let k in attr) {
@@ -25,7 +25,7 @@ function createSelectBox(option:Record<string, string>, selected:number | string
     return s
 }
 
-var COLORLIST = {
+const COLORLIST = {
     0: "選択▼",
     1: "明灰",
     2: "暗灰",
@@ -125,7 +125,7 @@ const settingDefault: Record<string, iSettingOption> = {
     autoreload_interval: {
         value: "30",
         name: "自動更新(観戦時のみ)",
-        option: { 10: "10秒", 20: "20秒", 30: "30秒", 60: "60分" },
+        option: { 10: "10秒", 20: "20秒", 30: "30秒", 60: "60秒" },
     },
     theme_color: {
         value: "navy",
@@ -172,7 +172,7 @@ interface iColorSetting {
     option: typeof nameColor
 }
 
-const colorSettingDefault: {[key:string] : iColorSetting} =   {
+const colorSettingDefault: Record<string, iColorSetting> =   {
     gray: {
         value: "black",
         name: "グレー",
@@ -240,8 +240,347 @@ class Tr {
     }
 }
 
+interface iVote{
+    day: number
+    targets: string[]
+}
+
+abstract class AbstParser{
+    abstract body(): JQuery<HTMLElement>
+    abstract villageNo(): string
+    abstract today(): number
+    abstract isDaytime(): boolean
+    abstract eachPlayer(no:number, html: string): Player
+    abstract player(): Player[]
+    abstract vital(): iVital[]
+    abstract vote():Record<string, iVote>
+    abstract death(): Record<string, iDeath>
+    abstract discuss(): Log[]
+    abstract isUnvote(): boolean
+}
+
+class WakameteParser extends AbstParser{
+    constructor(){
+        super()
+    }
+
+    body(){
+        return $("body")
+    }
+
+    villageNo(){
+        return $("title").text().slice(0, 6)
+    }
+
+    today(){
+        var day = /<font size="\+2">(\d{1,2})/.exec($("body").html())
+        return day ? +day[1] - 1 : 0
+    }
+
+    isDaytime(){
+        return $("body").attr("bgcolor") != "#000000";
+    }
+
+    vital(){
+        let vitals:iVital[] = []
+        $("#w_player")
+            .find("td:odd")
+            .each((i, v) => {
+                if (!$(v).html()) return false
+                vitals.push(/生存中/.test($(v).html()) ? "alive" : "death")
+            })
+        return vitals
+    }
+
+    death(){
+        let deathList: HTMLElement[] = []
+        let result:Record <string, iDeath> = {}
+        $("#w_discuss")
+            .find("td[colspan='2']")
+            .each((i, tr) => {
+                if (/(で発見|結果処刑|突然死|猫又の呪い)/.test($(tr).text())) {
+                    deathList.push(tr)
+                }
+            })
+
+        let day = this.today()
+        let cantco = this.today()
+        let isdaytime = this.isDaytime()
+
+        for (let log of deathList) {
+            let cn = $(log).find("b").eq(0).text()
+            let text = $(log).text()
+            let reason = ""
+            if (/無残な姿/.test(text)) reason = "bite"
+            if (/死体で発見/.test(text)) reason = "note"
+            if (/村民協議の結果|猫又の呪い/.test(text)) {
+                reason = "exec"
+                isdaytime ? day-- : cantco++
+            }
+            if (/突然死/.test(text)) {
+                reason = "sudden"
+                cantco++
+            }
+            result[cn] = {
+                reason: reason,
+                cantco: cantco,
+                day: day,
+            }
+        }
+        return result
+    }
+
+    vote(){
+        let result:Record<string, iVote> = {}
+
+        let votelog: HTMLElement[] = []
+        $("#w_discuss")
+            .find("td[colspan='2']")
+            .each(function (i, v) {
+                if (/\d{1,2}日目 投票結果。/.test($(v).text())) {
+                    votelog.unshift(v)
+                }
+            })
+        if (!votelog.length) return {}
+
+        let daystr = $(votelog[0])
+            .text()
+            .match(/(\d{1,2})日目 投票結果。/)
+        if (!daystr) return {}
+        let day = +daystr[1] - 1
+
+        for (let times = 0; times < votelog.length; times++) {
+            $(votelog[times])
+                .find("tr")
+                .each((i, vote) => {
+                    let voter = $(vote).find("b").eq(0).text()
+                    let target = $(vote).find("b").eq(1).text()
+                    if(voter){
+                        if(!result[voter]){
+                            result[voter] = {day: day, targets: []}
+                        }
+                         result[voter].targets.push(target)
+                    }
+
+                })
+        }
+        return result
+    }
+
+    eachPlayer(no: number, html: string) {
+        let name = html.split("<br>")[0]
+        let vital:iVital = /生存中/.test(html) ? "alive" : "death"
+        return new Player({
+            no: no,
+            name: name,
+            vital: vital,
+        })
+    }
+
+    player(){
+        let players: Player[] = []
+        $("#w_player")
+            .find("td:odd")
+            .each((i, v) => {
+                let html = $(v).html()
+                if (!html) return false
+
+                let player = this.eachPlayer(i, html)
+                players.push(player)
+            })
+        return players
+    }
+
+    discuss(){
+        let logs:Log[] = []
+        if (!this.isDaytime) return []
+        $("#w_discuss")
+            .find("tr")
+            .each((i, tr) => {
+                if ($(tr).children().length == 2) {
+                    let name = $(tr).children().eq(0).find("b").eq(0).html()
+                    let content = $(tr).children().eq(1).html()
+                    let namehtml = $(tr).children().eq(0).html()
+                    let color = namehtml.match(/color="(.+?)"/)![1]
+
+                    let log = new Log({
+                        name: name,
+                        color: color,
+                        content: content,
+                    })
+
+                    logs.push(log)
+                }
+            })
+            return logs
+    }
+
+    isUnvote(){
+        return /<font size="\+2">投票/.test($("body").html())
+    }
+
+}
+
+class SikigamiParser extends AbstParser{
+    constructor(){
+        super()
+    }
+
+    body(){
+        return $("body")
+    }
+
+    villageNo(){
+        return location.href.match(/room_no=(\d+)/)![1]
+    }
+
+    // ! まだ
+    today(){
+        var day = /<font size="\+2">(\d{1,2})/.exec($("body").html())
+        return day ? +day[1] - 1 : 0
+    }
+
+    isDaytime(){
+        return /game_night\.css/.test($("head").html())
+    }
+
+    vital(){
+        let vitals:iVital[] = []
+
+        this.body()
+        .find("div.player table td:odd")
+        .each((i, v) => {
+            if (!$(v).html()) return false
+            vitals.push(/生存中/.test($(v).html()) ? "alive" : "death")
+        })
+        return vitals
+    }
+
+    death(){
+        let deathList: HTMLElement[] = []
+        let result:Record <string, iDeath> = {}
+        $("table.dead-type td")
+            .each((i, tr) => {
+                if (/(で発見|結果処刑|突然死|猫又の呪い)/.test($(tr).text())) {
+                    deathList.push(tr)
+                }
+            })
+
+        let day = this.today()
+        let cantco = this.today()
+        let isdaytime = this.isDaytime()
+
+        for (let log of deathList) {
+            let cn = $(log).text().split(" は")[0]
+            let text = $(log).text()
+            let reason = ""
+            if (/無残な姿/.test(text)) reason = "bite"
+            if (/死体で発見/.test(text)) reason = "note"
+            if (/投票の結果|猫又の呪い/.test(text)) {
+                reason = "exec"
+                isdaytime ? day-- : cantco++
+            }
+            if (/突然死/.test(text)) {
+                reason = "sudden"
+                cantco++
+            }
+            result[cn] = {
+                reason: reason,
+                cantco: cantco,
+                day: day,
+            }
+        }
+        return result
+    }
+
+    vote(){
+        let result:Record<string, iVote> = {}
+
+        let tables = $("table.vote-list")
+        if(!tables.length) return result
+
+        tables.each((i,table) => {
+            let day = $(table).find("td").eq(0).text().match(/(\d+) 日目/)![1]
+            $(table)
+                .find("tr")
+                .each((i, vote) => {
+                    let voter = $(vote).find(".vote-name").eq(0).text()
+                    let target = $(vote).find(".vote-name").eq(1).text()
+                    if(voter){
+                        if(!result[voter]){
+                            result[voter] = {day: +day, targets: []}
+                        }
+                         result[voter].targets.push(target)
+                    }
+
+                })
+        })
+
+        
+        return result
+    }
+
+    eachPlayer(no: number, html: string) {
+        let name = html.split("<br>")[0].split(">").pop()
+        let vital:iVital = /生存中/.test(html) ? "alive" : "death"
+        return new Player({
+            no: no,
+            name: name,
+            vital: vital,
+        })
+    }
+
+    player(){
+        let players: Player[] = []
+
+        this.body()
+            .find("div.player table td:odd")
+            .each((i, v) => {
+                let html = $(v).html()
+                if (!html) return false
+
+                let player = this.eachPlayer(i, html)
+                players.push(player)
+
+            })
+        return players
+    }
+
+    discuss(){
+        let logs:Log[] = []
+
+        if (!this.isDaytime) return []
+
+        this.body()
+            .find("tr.user-talk")
+            .each((i, tr) => {
+                let name = $(tr).find("td.user-name").text().slice(1)
+                let content = $(tr).children().eq(1).html()
+                let namehtml = $(tr).find("td.user-name").html()
+                let color = namehtml.match(/color="(.+?)"/)![1]
+
+                let log = new Log({
+                    name: name,
+                    color: color,
+                    content: content,
+                })
+
+                logs.push(log)
+            })
+            return logs
+    }
+
+    isUnvote(){
+        return /<font size="\+2">投票/.test($("body").html())
+    }
+
+}
+
+type iServer = "wakamete" | "sikigami"
+
 class MeatMemo {
-    serverName: String
+    parser: AbstParser
+    serverName: iServer
     playerManager: PlayerManager
     log: LogManager
     setting: Setting
@@ -249,11 +588,20 @@ class MeatMemo {
     random: Random
     style: Style
     utility: Utility
-    filterSetting: { [key: string]: string }
+    filterSetting: Record<string, string>
     isAutoReload: boolean
     newestImportDay: number
-    constructor(serverName: string) {
+    constructor(serverName: iServer) {
         this.serverName = serverName || "wakamete"
+
+        switch(this.serverName){
+            case "wakamete":
+                this.parser = new WakameteParser()
+                break
+            case "sikigami":
+                this.parser = new SikigamiParser()
+                break
+        }
 
         this.playerManager = new PlayerManager(this)
         this.log = new LogManager(this)
@@ -356,6 +704,46 @@ class MeatMemo {
         </div>
         `
         $("body").append(container).append(float)
+
+        this.switchInputMode()
+        this.switchAliveFilter()
+
+        let _this = this
+        $("#toggleButton").on("click", () => {
+            $("#memoContainer").toggle()
+        })
+        $("#importButton").on("click", () => {
+            this.import()
+            this.refresh()
+        })
+        $("#resetButton").on("click", () => {
+            if (!window.confirm("ログをすべてリセットします。本当によろしいですか？")) return false
+            this.reset()
+            this.refresh()
+        })
+
+        $("div.tab").on("click", function () {
+            let mode = $(this).data("value")
+            _this.switchDispArea(mode)
+        })
+        $("div.select.filter").on("click", function () {
+            let mode = $(this).data("value")
+            _this.switchAliveFilter(mode)
+        })
+
+        $("div.select.inputmode").on("click", function () {
+            let mode = $(this).data("value")
+            _this.switchInputMode(mode)
+        })
+
+        $("#toolArea").hover(
+            () => {
+                $("#toolArea_hid").show()
+            },
+            () => {
+                $("#toolArea_hid").hide()
+            }
+        )
     }
 
     autoImport() {
@@ -363,7 +751,7 @@ class MeatMemo {
             this.import()
         } else if (this.settingIs("auto_import_log", "onetime")) {
             let today = this.today
-            if (today > this.newestImportDay && /<font size="\+2">投票/.test($("body").html())) {
+            if (today > this.newestImportDay && this.parser.isUnvote()) {
                 this.newestImportDay = today
                 this.import()
             }
@@ -373,6 +761,7 @@ class MeatMemo {
     import() {
         this.playerManager.import()
         this.log.import()
+        this.message("ログを取り込みました。")
         this.save()
     }
 
@@ -424,6 +813,23 @@ class MeatMemo {
     }
 
     on() {
+
+        if(this.serverName == "wakamete"){
+            this.addUtility_wakamete()
+        }
+
+
+
+        $(window).on("keydown", function (e) {
+            if (e.keyCode == 27) {
+                $("#memoContainer").hide()
+            }
+        })
+        this.autoImport()
+        this.refresh()
+    }
+
+    addUtility_wakamete(){
         $("table").eq(1).attr("id", "w_player")
         $("table[cellspacing=0]").eq(-1).attr("id", "w_textarea")
         $("table[cellpadding=0]").not(".CLSTABLE2").last().attr("id", "w_discuss")
@@ -441,49 +847,6 @@ class MeatMemo {
             "<td><input type='submit' value='行動/更新' style='height:100px; width:150px;'></td>"
         $("#w_textarea").find("td:last").after(submitbutton).after(voicebutton)
 
-        this.switchInputMode()
-        this.switchAliveFilter()
-
-        let _this = this
-        $("#toggleButton").on("click", () => {
-            $("#memoContainer").toggle()
-        })
-        $("#importButton").on("click", () => {
-            this.import()
-            this.refresh()
-        })
-        $("#resetButton").on("click", () => {
-            if (!window.confirm("ログをすべてリセットします。本当によろしいですか？")) return false
-            this.reset()
-            this.refresh()
-        })
-        $("#reloadButton").on("click", function () {
-            $("textarea").val("")
-            document.forms[0].submit()
-        })
-        $("div.tab").on("click", function () {
-            let mode = $(this).data("value")
-            _this.switchDispArea(mode)
-        })
-        $("div.select.filter").on("click", function () {
-            let mode = $(this).data("value")
-            _this.switchAliveFilter(mode)
-        })
-
-        $("div.select.inputmode").on("click", function () {
-            let mode = $(this).data("value")
-            _this.switchInputMode(mode)
-        })
-
-        $("#toolArea").hover(
-            () => {
-                $("#toolArea_hid").show()
-            },
-            () => {
-                $("#toolArea_hid").hide()
-            }
-        )
-
         $("textarea").eq(0).focus()
 
         $("div.voice").on("click", function () {
@@ -492,13 +855,10 @@ class MeatMemo {
             $(this).addClass("voice_selected")
         })
 
-        $(window).on("keydown", function (e) {
-            if (e.keyCode == 27) {
-                $("#memoContainer").hide()
-            }
+        $("#reloadButton").on("click", function () {
+            $("textarea").val("")
+            document.forms[0].submit()
         })
-
-        this.refresh()
     }
 
     toggleAutoReload() {
@@ -507,7 +867,8 @@ class MeatMemo {
     }
 
     get villageNo() {
-        return $("title").text().slice(0, 6)
+        return this.parser.villageNo()
+
     }
 
     load() {
@@ -542,6 +903,7 @@ class MeatMemo {
         }
         localStorage.setItem("memodata", JSON.stringify(data))
     }
+
     filterLog(no = 99, day = 99) {
         if (no < 99) {
             $("#discussLogTable tr").hide()
@@ -558,9 +920,19 @@ class MeatMemo {
             $("#discussLogTable tbody").show()
         }
     }
+
+    message(text:string, sec = 3){
+        $("#header-message").remove()
+        $("<div></div>")
+            .addClass("message")
+            .attr("id","header-message")
+            .text(text)
+            .prependTo("#floatButtonArea")
+        setTimeout(() => $("#header-message").remove(), sec * 1000)
+    }
+
     get today(): number {
-        var day = /<font size="\+2">(\d{1,2})/.exec($("body").html())
-        return day ? +day[1] - 1 : 0
+        return this.parser.today()
     }
 
     get newestDay(): number {
@@ -568,7 +940,7 @@ class MeatMemo {
     }
 
     get isDaytime(): boolean {
-        return $("body").attr("bgcolor") != "#000000"
+        return this.parser.isDaytime()
     }
 
     get isStart(): boolean {
@@ -576,12 +948,12 @@ class MeatMemo {
     }
 }
 
-interface jobresult {
+interface iJobresult {
     target: number
     judge: iFortuneResult
 }
 
-interface deathDetail {
+interface iDeath {
     reason: string | null
     day: number | null
     cantco: number
@@ -595,14 +967,12 @@ interface iPlayer {
     vital: iVital
     job: iJob
     reasoning: iReasoning
-    jobresult: jobresult[]
+    jobresult: iJobresult[]
     vote: string[][]
-    death: deathDetail
+    death: iDeath
 }
 
-interface iPlayerList {
-    [key: string]: string
-}
+type iPlayerList = Record<string, string>
 
 
 class Player implements iPlayer {
@@ -611,9 +981,9 @@ class Player implements iPlayer {
     vital: iVital
     job: iJob
     reasoning: iReasoning
-    jobresult: jobresult[]
+    jobresult: iJobresult[]
     vote: string[][]
-    death: deathDetail
+    death: iDeath
     constructor(data:Partial<iPlayer>) {
         this.no = data.no || 0
         this.name = data.name || ""
@@ -625,16 +995,6 @@ class Player implements iPlayer {
         this.death = data.death || { reason: null, day: null, cantco: 99 }
     }
 
-    static wakameteHTMLof(no: number, html: string) {
-        let name = html.split("<br>")[0]
-        let vital:iVital = /生存中/.test(html) ? "alive" : "death"
-        return new Player({
-            no: no,
-            name: name,
-            vital: vital,
-        })
-    }
-
     forSave() {
         return {
             name: this.name,
@@ -644,7 +1004,7 @@ class Player implements iPlayer {
             reasoning: this.reasoning,
             jobresult: this.jobresult,
             vote: this.vote,
-            deathDetail: this.death,
+            death: this.death,
         }
     }
 
@@ -666,7 +1026,7 @@ class Player implements iPlayer {
 
 class PlayerManager {
     list: Player[]
-    indexOfName: { [name: string]: number }
+    indexOfName: Record<string, number>
     memo: MeatMemo
     constructor(memo:MeatMemo) {
         this.list = []
@@ -710,23 +1070,15 @@ class PlayerManager {
     }
 
     import() {
-        this.update()
-        this.import_vote_wakamete()
-        this.import_death_wakamete()
-    }
 
-    update() {
-        switch (this.memo.serverName) {
-            case "wakamete":
-                let isStart = this.memo.isStart
-                if (isStart) {
-                    this.vitalCheck_wakamete()
-                } else {
-                    this.update_wakamete()
-                }
-
-                break
+        if (this.memo.isStart) {
+            this.vitalCheck()
+        } else {
+            this.update()
         }
+        this.import_vote()
+        this.import_death()
+
     }
 
     no(name: string) {
@@ -737,98 +1089,45 @@ class PlayerManager {
         }
     }
 
-    vitalCheck_wakamete() {
-        $("#w_player")
-            .find("td:odd")
-            .each((i, v) => {
-                if (!$(v).html()) return false
-                this.list[i].updateVital(/生存中/.test($(v).html()) ? "alive" : "death")
-            })
-    }
-
-    update_wakamete() {
-        this.list = []
-        this.indexOfName = {}
-        $("#w_player")
-            .find("td:odd")
-            .each((i, v) => {
-                let html = $(v).html()
-                if (!html) return false
-
-                let player = Player.wakameteHTMLof(i, html)
-                this.list.push(player)
-
-                this.indexOfName[player.name] = i
-            })
-    }
-
-    import_death_wakamete() {
-        let deathList: HTMLElement[] = []
-        $("#w_discuss")
-            .find("td[colspan='2']")
-            .each((i, tr) => {
-                if (/(で発見|結果処刑|突然死|猫又の呪い)/.test($(tr).text())) {
-                    deathList.push(tr)
-                }
-            })
-
-        //死体を記録
-        let day = this.memo.today
-        let cantco = this.memo.today
-        let isdaytime = this.memo.isDaytime
-
-        for (let log of deathList) {
-            let player = this.pick($(log).find("b").eq(0).text())!
-            let text = $(log).text()
-            let reason = ""
-            if (/無残な姿/.test(text)) reason = "bite"
-            if (/死体で発見/.test(text)) reason = "note"
-            if (/村民協議の結果|猫又の呪い/.test(text)) {
-                reason = "exec"
-                isdaytime ? day-- : cantco++
-            }
-            if (/突然死/.test(text)) {
-                reason = "sudden"
-                cantco++
-            }
-            player.death = {
-                reason: reason,
-                cantco: cantco,
-                day: day,
-            }
+    vitalCheck() {
+        let vitals = this.memo.parser.vital()
+        for(let [i, vital] of vitals.entries()){
+            this.list[i].updateVital(vital)
         }
     }
 
-    import_vote_wakamete() {
-        let votelog: HTMLElement[] = []
-        $("#w_discuss")
-            .find("td[colspan='2']")
-            .each(function (i, v) {
-                if (/\d{1,2}日目 投票結果。/.test($(v).text())) {
-                    votelog.unshift(v)
-                }
-            })
-        if (!votelog.length) return false
+    update() {
+        let players = this.memo.parser.player()
+        this.list = players.map((p) => new Player(p))
+        this.indexOfName = {}
+        for (let [i,player] of this.list.entries()){
+            this.indexOfName[player.name] = i
+        }
 
-        let daystr = $(votelog[0])
-            .text()
-            .match(/(\d{1,2})日目 投票結果。/)
-        if (!daystr) return false
-        let day = +daystr[1] - 1
+    }
+
+    import_death() {
+        let deathList = this.memo.parser.death()
+        for(let cn in deathList){
+            let player = this.pick(cn)!
+            player.death = deathList[cn]
+        }
+    }
+
+    import_vote() {
+        let votes = this.memo.parser.vote()
+        if(!Object.keys(votes).length) return false
+
+        let day = votes[Object.keys(votes)[0]].day
+        let votenum = votes[Object.keys(votes)[0]].targets.length
 
         for (let player of this.list) {
-            player.vote.fillundef(["-"], day)
-            player.vote[day].fillundef("-", votelog.length - 1)
-        }
-
-        for (let times = 0; times < votelog.length; times++) {
-            $(votelog[times])
-                .find("tr")
-                .each((i, vote) => {
-                    let voter = this.pick($(vote).find("b").eq(0).text())
-                    let target = $(vote).find("b").eq(1).text()
-                    if (voter) voter.vote[day][times] = target
-                })
+            player.vote.fillundef(["-"], day);
+            if(player.name in votes){
+                player.vote[day] = votes[player.name].targets
+            } else{
+                player.vote[day].fillundef("-", votenum-1);
+            }
         }
     }
 
@@ -1213,19 +1512,11 @@ class LogManager {
     }
 
     import() {
-        switch (this.memo.serverName) {
-            case "wakamete":
-                this.import_wakamete()
-                break
-        }
+        this.import_discuss()
         this.memo.filterLog()
     }
 
-    import_wakamete() {
-        this.import_discuss_wakamete()
-    }
-
-    import_discuss_wakamete() {
+    import_discuss() {
         let today = this.memo.today
         let isDaytime = this.memo.isDaytime
 
@@ -1233,25 +1524,7 @@ class LogManager {
 
         this.list.fillundef([], today)
 
-        this.list[today] = []
-        $("#w_discuss")
-            .find("tr")
-            .each((i, tr) => {
-                if ($(tr).children().length == 2) {
-                    let name = $(tr).children().eq(0).find("b").eq(0).html()
-                    let content = $(tr).children().eq(1).html()
-                    let namehtml = $(tr).children().eq(0).html()
-                    let color = namehtml!.match(/color="(.+?)"/)![1]
-
-                    let log = new Log({
-                        name: name,
-                        color: color,
-                        content: content,
-                    })
-
-                    this.list[today].push(log)
-                }
-            })
+        this.list[today] = this.memo.parser.discuss()
     }
 
     refresh() {
@@ -1282,13 +1555,13 @@ class LogManager {
 
 interface iSettingOption{
     value: string
-    option: { [key: string]: string }
+    option: Record<string, string>
     name: string    
 }
 
 class SettingOption {
     value: string
-    option: { [key: string]: string }
+    option: Record<string, string>
     default: string
     name: string
     constructor(data: iSettingOption) {
@@ -1301,7 +1574,7 @@ class SettingOption {
 
 class ColorSetting {
     memo: MeatMemo
-    options: { [key: string]: SettingOption }
+    options: Record<string, SettingOption >
     constructor(memo: MeatMemo) {
         this.memo = memo
         this.options = {}
@@ -1376,7 +1649,7 @@ class ColorSetting {
     }
 
     forSave() {
-        let result:{[key:string]:string} = {}
+        let result:Record<string, string> = {}
         for (let key in this.options) {
             result[key] = this.options[key].value
         }
@@ -1386,7 +1659,7 @@ class ColorSetting {
 
 class Setting {
     memo: MeatMemo
-    options: { [key: string]: SettingOption }
+    options: Record<string, SettingOption >
     constructor(memo: MeatMemo) {
         this.memo = memo
         this.options = {}
@@ -1399,7 +1672,7 @@ class Setting {
         this.load()
 
         let settingArea = $("<div></div>", { id: "setting", class: "window southEast" }).appendTo(
-            $("body")
+            this.memo.parser.body()
         )
         $("#toolArea_hid").append("<a id='dispsetting'>設定</a>")
 
@@ -1468,6 +1741,11 @@ class Random {
     }
 
     init() {
+
+        if (this.memo.serverName != "wakamete") {
+            return false
+        }
+
         let randomWindow = `
             <div id="random" class="window southEast">
 
@@ -1599,11 +1877,15 @@ class Utility {
     }
 
     init() {
+
+        if(this.memo.serverName != "wakamete") return false
+
+        this.memo.playerManager.coloring()
+
         this.setAlertVote()
         this.receiveKeyResponse()
         this.dispSuggest()
         this.highlightDeathnote()
-        this.memo.playerManager.coloring()
         this.setAutoReload()
     }
 
@@ -1731,5 +2013,5 @@ class Utility {
 
 //村画面でないときは出さない
 if ($("body").attr("bgcolor") != "#fee3aa") {
-    const meatmemo = new MeatMemo("wakamete")
+    const meatmemo = new MeatMemo(/cgi/.test(location.href) ? "wakamete" : "sikigami")
 }

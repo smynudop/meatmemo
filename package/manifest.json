@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "MeatMemo",
     "description": "わかめて鯖での人狼ゲームを快適にする拡張機能です。操作方法などは「わかめてメモ」を参考にしています。",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "icons": {
         "16": "icon/icon_16.png",
         "48": "icon/icon_48.png",
@@ -22,7 +22,9 @@
             "css": [
                 "rewrite.css",
                 "meatmemo.css"
-            ]
+            ],
+            "all_frames":true
+
         }
     ],
     "permissions": []

@@ -156,12 +156,12 @@
         "signature": "2ad234885a4240522efccd77de6c7d99eecf9b4de0914adb9a35c0c22433f993",
         "affectsGlobalScope": true
       },
-      "./meatmemo.ts": {
-        "version": "bf2c079d13c47ce16b4a22aa9bb14a849839b0758f26b55ce3c5a4191aa1f650",
-        "signature": "72ba58d00b0795bce1eb2f394dc14d8e71b44e37972f09a09b5c15e7afcec437",
+      "../src/meatmemo.ts": {
+        "version": "e703187d681af20e3ba4ee30ca2819432ec9201668ec3ba3269e0cff8c286f58",
+        "signature": "3729b78f90af5602f37e08ea336e2db817434cf24f498dc8e196f5e17c7b0a26",
         "affectsGlobalScope": true
       },
-      "./proto.ts": {
+      "../src/proto.ts": {
         "version": "646a0a5c56eab44a3478a0ed2e966f8d2414e7de7aaa41cf883670a66ab79c59",
         "signature": "0dad14a50d8b2980832ec5a1f39a8f3414d082929fd4e95d95abc8aeade34156",
         "affectsGlobalScope": true
@@ -205,6 +205,7 @@
         "lib.dom.d.ts",
         "lib.es2019.d.ts"
       ],
+      "outDir": "./",
       "removeComments": true,
       "strict": true,
       "noImplicitAny": true,
@@ -217,7 +218,7 @@
       "esModuleInterop": true,
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true,
-      "configFilePath": "./tsconfig.json"
+      "configFilePath": "../src/tsconfig.json"
     },
     "referencedMap": {
       "../../../node_modules/@types/jquery/index.d.ts": [
@@ -269,8 +270,8 @@
       "../../../appdata/roaming/npm/node_modules/typescript/lib/lib.es2019.string.d.ts",
       "../../../appdata/roaming/npm/node_modules/typescript/lib/lib.es2019.symbol.d.ts",
       "../../../appdata/roaming/npm/node_modules/typescript/lib/lib.es5.d.ts",
-      "./meatmemo.ts",
-      "./proto.ts",
+      "../src/meatmemo.ts",
+      "../src/proto.ts",
       "../../../node_modules/@types/jquery/index.d.ts",
       "../../../node_modules/@types/jquery/jquery.d.ts",
       "../../../node_modules/@types/jquery/jquerystatic.d.ts",

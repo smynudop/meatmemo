@@ -20,7 +20,7 @@ function createSelectBox(option, selected, attr) {
     s += "</select>";
     return s;
 }
-var COLORLIST = {
+const COLORLIST = {
     0: "選択▼",
     1: "明灰",
     2: "暗灰",
@@ -113,7 +113,7 @@ const settingDefault = {
     autoreload_interval: {
         value: "30",
         name: "自動更新(観戦時のみ)",
-        option: { 10: "10秒", 20: "20秒", 30: "30秒", 60: "60分" },
+        option: { 10: "10秒", 20: "20秒", 30: "30秒", 60: "60秒" },
     },
     theme_color: {
         value: "navy",
@@ -211,9 +211,298 @@ class Tr {
         jQueryObject.append(this.text());
     }
 }
+class AbstParser {
+}
+class WakameteParser extends AbstParser {
+    constructor() {
+        super();
+    }
+    body() {
+        return $("body");
+    }
+    villageNo() {
+        return $("title").text().slice(0, 6);
+    }
+    today() {
+        var day = /<font size="\+2">(\d{1,2})/.exec($("body").html());
+        return day ? +day[1] - 1 : 0;
+    }
+    isDaytime() {
+        return $("body").attr("bgcolor") != "#000000";
+    }
+    vital() {
+        let vitals = [];
+        $("#w_player")
+            .find("td:odd")
+            .each((i, v) => {
+            if (!$(v).html())
+                return false;
+            vitals.push(/生存中/.test($(v).html()) ? "alive" : "death");
+        });
+        return vitals;
+    }
+    death() {
+        let deathList = [];
+        let result = {};
+        $("#w_discuss")
+            .find("td[colspan='2']")
+            .each((i, tr) => {
+            if (/(で発見|結果処刑|突然死|猫又の呪い)/.test($(tr).text())) {
+                deathList.push(tr);
+            }
+        });
+        let day = this.today();
+        let cantco = this.today();
+        let isdaytime = this.isDaytime();
+        for (let log of deathList) {
+            let cn = $(log).find("b").eq(0).text();
+            let text = $(log).text();
+            let reason = "";
+            if (/無残な姿/.test(text))
+                reason = "bite";
+            if (/死体で発見/.test(text))
+                reason = "note";
+            if (/村民協議の結果|猫又の呪い/.test(text)) {
+                reason = "exec";
+                isdaytime ? day-- : cantco++;
+            }
+            if (/突然死/.test(text)) {
+                reason = "sudden";
+                cantco++;
+            }
+            result[cn] = {
+                reason: reason,
+                cantco: cantco,
+                day: day,
+            };
+        }
+        return result;
+    }
+    vote() {
+        let result = {};
+        let votelog = [];
+        $("#w_discuss")
+            .find("td[colspan='2']")
+            .each(function (i, v) {
+            if (/\d{1,2}日目 投票結果。/.test($(v).text())) {
+                votelog.unshift(v);
+            }
+        });
+        if (!votelog.length)
+            return {};
+        let daystr = $(votelog[0])
+            .text()
+            .match(/(\d{1,2})日目 投票結果。/);
+        if (!daystr)
+            return {};
+        let day = +daystr[1] - 1;
+        for (let times = 0; times < votelog.length; times++) {
+            $(votelog[times])
+                .find("tr")
+                .each((i, vote) => {
+                let voter = $(vote).find("b").eq(0).text();
+                let target = $(vote).find("b").eq(1).text();
+                if (voter) {
+                    if (!result[voter]) {
+                        result[voter] = { day: day, targets: [] };
+                    }
+                    result[voter].targets.push(target);
+                }
+            });
+        }
+        return result;
+    }
+    eachPlayer(no, html) {
+        let name = html.split("<br>")[0];
+        let vital = /生存中/.test(html) ? "alive" : "death";
+        return new Player({
+            no: no,
+            name: name,
+            vital: vital,
+        });
+    }
+    player() {
+        let players = [];
+        $("#w_player")
+            .find("td:odd")
+            .each((i, v) => {
+            let html = $(v).html();
+            if (!html)
+                return false;
+            let player = this.eachPlayer(i, html);
+            players.push(player);
+        });
+        return players;
+    }
+    discuss() {
+        let logs = [];
+        if (!this.isDaytime)
+            return [];
+        $("#w_discuss")
+            .find("tr")
+            .each((i, tr) => {
+            if ($(tr).children().length == 2) {
+                let name = $(tr).children().eq(0).find("b").eq(0).html();
+                let content = $(tr).children().eq(1).html();
+                let namehtml = $(tr).children().eq(0).html();
+                let color = namehtml.match(/color="(.+?)"/)[1];
+                let log = new Log({
+                    name: name,
+                    color: color,
+                    content: content,
+                });
+                logs.push(log);
+            }
+        });
+        return logs;
+    }
+    isUnvote() {
+        return /<font size="\+2">投票/.test($("body").html());
+    }
+}
+class SikigamiParser extends AbstParser {
+    constructor() {
+        super();
+    }
+    body() {
+        return $("body");
+    }
+    villageNo() {
+        return location.href.match(/room_no=(\d+)/)[1];
+    }
+    today() {
+        var day = /<font size="\+2">(\d{1,2})/.exec($("body").html());
+        return day ? +day[1] - 1 : 0;
+    }
+    isDaytime() {
+        return /game_night\.css/.test($("head").html());
+    }
+    vital() {
+        let vitals = [];
+        this.body()
+            .find("div.player table td:odd")
+            .each((i, v) => {
+            if (!$(v).html())
+                return false;
+            vitals.push(/生存中/.test($(v).html()) ? "alive" : "death");
+        });
+        return vitals;
+    }
+    death() {
+        let deathList = [];
+        let result = {};
+        $("table.dead-type td")
+            .each((i, tr) => {
+            if (/(で発見|結果処刑|突然死|猫又の呪い)/.test($(tr).text())) {
+                deathList.push(tr);
+            }
+        });
+        let day = this.today();
+        let cantco = this.today();
+        let isdaytime = this.isDaytime();
+        for (let log of deathList) {
+            let cn = $(log).text().split(" は")[0];
+            let text = $(log).text();
+            let reason = "";
+            if (/無残な姿/.test(text))
+                reason = "bite";
+            if (/死体で発見/.test(text))
+                reason = "note";
+            if (/投票の結果|猫又の呪い/.test(text)) {
+                reason = "exec";
+                isdaytime ? day-- : cantco++;
+            }
+            if (/突然死/.test(text)) {
+                reason = "sudden";
+                cantco++;
+            }
+            result[cn] = {
+                reason: reason,
+                cantco: cantco,
+                day: day,
+            };
+        }
+        return result;
+    }
+    vote() {
+        let result = {};
+        let tables = $("table.vote-list");
+        if (!tables.length)
+            return result;
+        tables.each((i, table) => {
+            let day = $(table).find("td").eq(0).text().match(/(\d+) 日目/)[1];
+            $(table)
+                .find("tr")
+                .each((i, vote) => {
+                let voter = $(vote).find(".vote-name").eq(0).text();
+                let target = $(vote).find(".vote-name").eq(1).text();
+                if (voter) {
+                    if (!result[voter]) {
+                        result[voter] = { day: +day, targets: [] };
+                    }
+                    result[voter].targets.push(target);
+                }
+            });
+        });
+        return result;
+    }
+    eachPlayer(no, html) {
+        let name = html.split("<br>")[0].split(">").pop();
+        let vital = /生存中/.test(html) ? "alive" : "death";
+        return new Player({
+            no: no,
+            name: name,
+            vital: vital,
+        });
+    }
+    player() {
+        let players = [];
+        this.body()
+            .find("div.player table td:odd")
+            .each((i, v) => {
+            let html = $(v).html();
+            if (!html)
+                return false;
+            let player = this.eachPlayer(i, html);
+            players.push(player);
+        });
+        return players;
+    }
+    discuss() {
+        let logs = [];
+        if (!this.isDaytime)
+            return [];
+        this.body()
+            .find("tr.user-talk")
+            .each((i, tr) => {
+            let name = $(tr).find("td.user-name").text().slice(1);
+            let content = $(tr).children().eq(1).html();
+            let namehtml = $(tr).find("td.user-name").html();
+            let color = namehtml.match(/color="(.+?)"/)[1];
+            let log = new Log({
+                name: name,
+                color: color,
+                content: content,
+            });
+            logs.push(log);
+        });
+        return logs;
+    }
+    isUnvote() {
+        return /<font size="\+2">投票/.test($("body").html());
+    }
+}
 class MeatMemo {
     constructor(serverName) {
         this.serverName = serverName || "wakamete";
+        switch (this.serverName) {
+            case "wakamete":
+                this.parser = new WakameteParser();
+                break;
+            case "sikigami":
+                this.parser = new SikigamiParser();
+                break;
+        }
         this.playerManager = new PlayerManager(this);
         this.log = new LogManager(this);
         this.setting = new Setting(this);
@@ -309,6 +598,39 @@ class MeatMemo {
         </div>
         `;
         $("body").append(container).append(float);
+        this.switchInputMode();
+        this.switchAliveFilter();
+        let _this = this;
+        $("#toggleButton").on("click", () => {
+            $("#memoContainer").toggle();
+        });
+        $("#importButton").on("click", () => {
+            this.import();
+            this.refresh();
+        });
+        $("#resetButton").on("click", () => {
+            if (!window.confirm("ログをすべてリセットします。本当によろしいですか？"))
+                return false;
+            this.reset();
+            this.refresh();
+        });
+        $("div.tab").on("click", function () {
+            let mode = $(this).data("value");
+            _this.switchDispArea(mode);
+        });
+        $("div.select.filter").on("click", function () {
+            let mode = $(this).data("value");
+            _this.switchAliveFilter(mode);
+        });
+        $("div.select.inputmode").on("click", function () {
+            let mode = $(this).data("value");
+            _this.switchInputMode(mode);
+        });
+        $("#toolArea").hover(() => {
+            $("#toolArea_hid").show();
+        }, () => {
+            $("#toolArea_hid").hide();
+        });
     }
     autoImport() {
         if (this.settingIs("auto_import_log", "alltime")) {
@@ -316,7 +638,7 @@ class MeatMemo {
         }
         else if (this.settingIs("auto_import_log", "onetime")) {
             let today = this.today;
-            if (today > this.newestImportDay && /<font size="\+2">投票/.test($("body").html())) {
+            if (today > this.newestImportDay && this.parser.isUnvote()) {
                 this.newestImportDay = today;
                 this.import();
             }
@@ -325,6 +647,7 @@ class MeatMemo {
     import() {
         this.playerManager.import();
         this.log.import();
+        this.message("ログを取り込みました。");
         this.save();
     }
     refresh() {
@@ -367,6 +690,18 @@ class MeatMemo {
         this.save();
     }
     on() {
+        if (this.serverName == "wakamete") {
+            this.addUtility_wakamete();
+        }
+        $(window).on("keydown", function (e) {
+            if (e.keyCode == 27) {
+                $("#memoContainer").hide();
+            }
+        });
+        this.autoImport();
+        this.refresh();
+    }
+    addUtility_wakamete() {
         $("table").eq(1).attr("id", "w_player");
         $("table[cellspacing=0]").eq(-1).attr("id", "w_textarea");
         $("table[cellpadding=0]").not(".CLSTABLE2").last().attr("id", "w_discuss");
@@ -381,62 +716,23 @@ class MeatMemo {
         ].join("");
         let submitbutton = "<td><input type='submit' value='行動/更新' style='height:100px; width:150px;'></td>";
         $("#w_textarea").find("td:last").after(submitbutton).after(voicebutton);
-        this.switchInputMode();
-        this.switchAliveFilter();
-        let _this = this;
-        $("#toggleButton").on("click", () => {
-            $("#memoContainer").toggle();
-        });
-        $("#importButton").on("click", () => {
-            this.import();
-            this.refresh();
-        });
-        $("#resetButton").on("click", () => {
-            if (!window.confirm("ログをすべてリセットします。本当によろしいですか？"))
-                return false;
-            this.reset();
-            this.refresh();
-        });
-        $("#reloadButton").on("click", function () {
-            $("textarea").val("");
-            document.forms[0].submit();
-        });
-        $("div.tab").on("click", function () {
-            let mode = $(this).data("value");
-            _this.switchDispArea(mode);
-        });
-        $("div.select.filter").on("click", function () {
-            let mode = $(this).data("value");
-            _this.switchAliveFilter(mode);
-        });
-        $("div.select.inputmode").on("click", function () {
-            let mode = $(this).data("value");
-            _this.switchInputMode(mode);
-        });
-        $("#toolArea").hover(() => {
-            $("#toolArea_hid").show();
-        }, () => {
-            $("#toolArea_hid").hide();
-        });
         $("textarea").eq(0).focus();
         $("div.voice").on("click", function () {
             $("select").eq(0).val($(this).data("value"));
             $("div.voice").removeClass("voice_selected");
             $(this).addClass("voice_selected");
         });
-        $(window).on("keydown", function (e) {
-            if (e.keyCode == 27) {
-                $("#memoContainer").hide();
-            }
+        $("#reloadButton").on("click", function () {
+            $("textarea").val("");
+            document.forms[0].submit();
         });
-        this.refresh();
     }
     toggleAutoReload() {
         this.isAutoReload = !this.isAutoReload;
         this.save();
     }
     get villageNo() {
-        return $("title").text().slice(0, 6);
+        return this.parser.villageNo();
     }
     load() {
         let sdata = localStorage.getItem("memodata");
@@ -482,15 +778,23 @@ class MeatMemo {
             $("#discussLogTable tbody").show();
         }
     }
+    message(text, sec = 3) {
+        $("#header-message").remove();
+        $("<div></div>")
+            .addClass("message")
+            .attr("id", "header-message")
+            .text(text)
+            .prependTo("#floatButtonArea");
+        setTimeout(() => $("#header-message").remove(), sec * 1000);
+    }
     get today() {
-        var day = /<font size="\+2">(\d{1,2})/.exec($("body").html());
-        return day ? +day[1] - 1 : 0;
+        return this.parser.today();
     }
     get newestDay() {
         return Math.max(this.today, this.log.list.length - 1);
     }
     get isDaytime() {
-        return $("body").attr("bgcolor") != "#000000";
+        return this.parser.isDaytime();
     }
     get isStart() {
         return this.log.list.length >= 2;
@@ -507,15 +811,6 @@ class Player {
         this.vote = data.vote || [];
         this.death = data.death || { reason: null, day: null, cantco: 99 };
     }
-    static wakameteHTMLof(no, html) {
-        let name = html.split("<br>")[0];
-        let vital = /生存中/.test(html) ? "alive" : "death";
-        return new Player({
-            no: no,
-            name: name,
-            vital: vital,
-        });
-    }
     forSave() {
         return {
             name: this.name,
@@ -525,7 +820,7 @@ class Player {
             reasoning: this.reasoning,
             jobresult: this.jobresult,
             vote: this.vote,
-            deathDetail: this.death,
+            death: this.death,
         };
     }
     updateVital(vital) {
@@ -585,22 +880,14 @@ class PlayerManager {
         }
     }
     import() {
-        this.update();
-        this.import_vote_wakamete();
-        this.import_death_wakamete();
-    }
-    update() {
-        switch (this.memo.serverName) {
-            case "wakamete":
-                let isStart = this.memo.isStart;
-                if (isStart) {
-                    this.vitalCheck_wakamete();
-                }
-                else {
-                    this.update_wakamete();
-                }
-                break;
+        if (this.memo.isStart) {
+            this.vitalCheck();
         }
+        else {
+            this.update();
+        }
+        this.import_vote();
+        this.import_death();
     }
     no(name) {
         if (name in this.indexOfName) {
@@ -610,94 +897,41 @@ class PlayerManager {
             return "";
         }
     }
-    vitalCheck_wakamete() {
-        $("#w_player")
-            .find("td:odd")
-            .each((i, v) => {
-            if (!$(v).html())
-                return false;
-            this.list[i].updateVital(/生存中/.test($(v).html()) ? "alive" : "death");
-        });
-    }
-    update_wakamete() {
-        this.list = [];
-        this.indexOfName = {};
-        $("#w_player")
-            .find("td:odd")
-            .each((i, v) => {
-            let html = $(v).html();
-            if (!html)
-                return false;
-            let player = Player.wakameteHTMLof(i, html);
-            this.list.push(player);
-            this.indexOfName[player.name] = i;
-        });
-    }
-    import_death_wakamete() {
-        let deathList = [];
-        $("#w_discuss")
-            .find("td[colspan='2']")
-            .each((i, tr) => {
-            if (/(で発見|結果処刑|突然死|猫又の呪い)/.test($(tr).text())) {
-                deathList.push(tr);
-            }
-        });
-        let day = this.memo.today;
-        let cantco = this.memo.today;
-        let isdaytime = this.memo.isDaytime;
-        for (let log of deathList) {
-            let player = this.pick($(log).find("b").eq(0).text());
-            let text = $(log).text();
-            let reason = "";
-            if (/無残な姿/.test(text))
-                reason = "bite";
-            if (/死体で発見/.test(text))
-                reason = "note";
-            if (/村民協議の結果|猫又の呪い/.test(text)) {
-                reason = "exec";
-                isdaytime ? day-- : cantco++;
-            }
-            if (/突然死/.test(text)) {
-                reason = "sudden";
-                cantco++;
-            }
-            player.death = {
-                reason: reason,
-                cantco: cantco,
-                day: day,
-            };
+    vitalCheck() {
+        let vitals = this.memo.parser.vital();
+        for (let [i, vital] of vitals.entries()) {
+            this.list[i].updateVital(vital);
         }
     }
-    import_vote_wakamete() {
-        let votelog = [];
-        $("#w_discuss")
-            .find("td[colspan='2']")
-            .each(function (i, v) {
-            if (/\d{1,2}日目 投票結果。/.test($(v).text())) {
-                votelog.unshift(v);
-            }
-        });
-        if (!votelog.length)
+    update() {
+        let players = this.memo.parser.player();
+        this.list = players.map((p) => new Player(p));
+        this.indexOfName = {};
+        for (let [i, player] of this.list.entries()) {
+            this.indexOfName[player.name] = i;
+        }
+    }
+    import_death() {
+        let deathList = this.memo.parser.death();
+        for (let cn in deathList) {
+            let player = this.pick(cn);
+            player.death = deathList[cn];
+        }
+    }
+    import_vote() {
+        let votes = this.memo.parser.vote();
+        if (!Object.keys(votes).length)
             return false;
-        let daystr = $(votelog[0])
-            .text()
-            .match(/(\d{1,2})日目 投票結果。/);
-        if (!daystr)
-            return false;
-        let day = +daystr[1] - 1;
+        let day = votes[Object.keys(votes)[0]].day;
+        let votenum = votes[Object.keys(votes)[0]].targets.length;
         for (let player of this.list) {
             player.vote.fillundef(["-"], day);
-            player.vote[day].fillundef("-", votelog.length - 1);
-        }
-        for (let times = 0; times < votelog.length; times++) {
-            $(votelog[times])
-                .find("tr")
-                .each((i, vote) => {
-                let voter = this.pick($(vote).find("b").eq(0).text());
-                let target = $(vote).find("b").eq(1).text();
-                if (voter)
-                    voter.vote[day][times] = target;
-            });
+            if (player.name in votes) {
+                player.vote[day] = votes[player.name].targets;
+            }
+            else {
+                player.vote[day].fillundef("-", votenum - 1);
+            }
         }
     }
     listforSelect() {
@@ -1017,39 +1251,16 @@ class LogManager {
         return this.list[day].filter((l) => l.name == name).length;
     }
     import() {
-        switch (this.memo.serverName) {
-            case "wakamete":
-                this.import_wakamete();
-                break;
-        }
+        this.import_discuss();
         this.memo.filterLog();
     }
-    import_wakamete() {
-        this.import_discuss_wakamete();
-    }
-    import_discuss_wakamete() {
+    import_discuss() {
         let today = this.memo.today;
         let isDaytime = this.memo.isDaytime;
         if (!isDaytime)
             return false;
         this.list.fillundef([], today);
-        this.list[today] = [];
-        $("#w_discuss")
-            .find("tr")
-            .each((i, tr) => {
-            if ($(tr).children().length == 2) {
-                let name = $(tr).children().eq(0).find("b").eq(0).html();
-                let content = $(tr).children().eq(1).html();
-                let namehtml = $(tr).children().eq(0).html();
-                let color = namehtml.match(/color="(.+?)"/)[1];
-                let log = new Log({
-                    name: name,
-                    color: color,
-                    content: content,
-                });
-                this.list[today].push(log);
-            }
-        });
+        this.list[today] = this.memo.parser.discuss();
     }
     refresh() {
         let discussLogTable = $("#discussLogTable");
@@ -1163,7 +1374,7 @@ class Setting {
             this.options[key] = new SettingOption(settingDefault[key]);
         }
         this.load();
-        let settingArea = $("<div></div>", { id: "setting", class: "window southEast" }).appendTo($("body"));
+        let settingArea = $("<div></div>", { id: "setting", class: "window southEast" }).appendTo(this.memo.parser.body());
         $("#toolArea_hid").append("<a id='dispsetting'>設定</a>");
         let settingTable = $("<table></table>", { id: "settingtable" }).appendTo(settingArea);
         settingArea.append(`<div class="closebutton"><input type="button" id="closeSetting" value='閉じる'></div>`);
@@ -1220,6 +1431,9 @@ class Random {
         this.memo = memo;
     }
     init() {
+        if (this.memo.serverName != "wakamete") {
+            return false;
+        }
         let randomWindow = `
             <div id="random" class="window southEast">
 
@@ -1331,11 +1545,13 @@ class Utility {
         this.autoReloadFlg = 0;
     }
     init() {
+        if (this.memo.serverName != "wakamete")
+            return false;
+        this.memo.playerManager.coloring();
         this.setAlertVote();
         this.receiveKeyResponse();
         this.dispSuggest();
         this.highlightDeathnote();
-        this.memo.playerManager.coloring();
         this.setAutoReload();
     }
     setAutoReload() {
@@ -1452,5 +1668,5 @@ class Utility {
     }
 }
 if ($("body").attr("bgcolor") != "#fee3aa") {
-    const meatmemo = new MeatMemo("wakamete");
+    const meatmemo = new MeatMemo(/cgi/.test(location.href) ? "wakamete" : "sikigami");
 }
