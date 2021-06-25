@@ -20,6 +20,7 @@ form {
     background-color: rgba(180, 180, 180, 0.8);
     padding: 15px;
     overflow: hidden;
+    font-family: Mairyo;
 }
 
 #floatButtonArea {
@@ -82,12 +83,12 @@ form {
 }
 
 #memoTab {
-    margin-top: 15px;
+    height: 36px;
 }
 
 #memoBody {
     width: 100%;
-    height: calc(100% - 63px);
+    height: calc(100% - 36px);
     margin: 0 auto;
 }
 
@@ -117,6 +118,15 @@ form {
     line-height: 140%;
     padding: 2px;
 }
+
+#discussLogTable td.big {
+    font-weight: bold;
+}
+
+#discussLogTable td.small {
+    color: #6666ee;
+}
+
 #discussLogTable font {
     font-size: 9pt;
 }
@@ -203,6 +213,7 @@ form {
     box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4);
     border-top: 16px solid var(--theme-color);
     background-color: #efefef;
+    color: black;
     padding: 10px;
     display: none;
 }
@@ -232,6 +243,7 @@ form {
     font-weight: bold;
     line-height: 24px;
     text-align: center;
+    vertical-align: top;
 }
 div.button {
     margin: 0px 2px;
@@ -246,6 +258,7 @@ div.button {
     display: inline-block;
     font-size: 12px;
     line-height: 24px;
+    margin-top: 12px;
     text-align: center;
     border-radius: 8px 8px 0 0;
 }
@@ -394,11 +407,11 @@ div.button:hover {
 #memoContainer.layout-side #playerInfoTable tr.resultrow {
     display: flex;
     flex-direction: column;
-    width: 130px;
+    width: 140px;
 }
 
 #memoContainer.layout-side #playerInfoTable tr.resultrow > td {
-    width: 130px;
+    width: 140px;
 }
 
 #memoContainer.layout-side #playerInfoTable td {

@@ -1,3 +1,5 @@
+/* わかめて */
+
 .CLSTABLE tr td:nth-of-type(even) {
     font-size: 12px;
     line-height: 110%;
@@ -25,11 +27,35 @@ table[cellpadding],
 table[cellspacing] {
     font-size: 13px;
 }
-textarea {
+textarea:not([name="say"]) {
     font-family: "Meiryo";
     font-size: 11px;
     min-height: 100px;
 }
 table[cellpadding="0"] tr td:nth-of-type(2) {
     word-break: break-all;
+}
+
+/* 式神 */
+
+body {
+    margin: 0px;
+    padding: 0;
+}
+
+form.input-say {
+    margin: 5px;
+}
+
+form.input-say br {
+    display: none;
+}
+
+form.input-say textarea,
+form.input-say input[type="submit"] {
+    height: 60px;
+}
+
+.game-header {
+    max-width: calc(100% - 250px);
 }

@@ -1,8 +1,8 @@
 {
     "manifest_version": 2,
     "name": "MeatMemo",
-    "description": "わかめて鯖での人狼ゲームを快適にする拡張機能です。操作方法などは「わかめてメモ」を参考にしています。",
-    "version": "1.1.0",
+    "description": "人狼サーバー「続わかめて」や「桃栗三年」でゲームをプレイする人向けの、ゲームを快適にする拡張機能です。操作方法などは「わかめてメモ」を参考にしています。",
+    "version": "1.2.2",
     "icons": {
         "16": "icon/icon_16.png",
         "48": "icon/icon_48.png",
@@ -12,11 +12,13 @@
         {
             "matches": [
                 "http://jinrou.dip.jp/~jinrou/cgi_jinro.cgi",
-                "http://61.215.66.131/~jinrou/cgi_jinro.cgi",
-                "http://www7a.biglobe.ne.jp/~kuri/cgi_jinro.cgi"
+                "http://124.32.233.3/~jinrou/cgi_jinro.cgi",
+                "http://www7a.biglobe.ne.jp/~kuri/cgi_jinro.cgi",
+                "http://alicegame.xsrv.jp/takane/game_up.php?*",
+                "http://alicegame.xsrv.jp/takane/game_play.php?*"
             ],
             "js": [
-                "jquery.js",
+                "jquery-3.6.0.slim.min.js",
                 "meatmemo.js"
             ],
             "css": [

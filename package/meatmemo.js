@@ -8,17 +8,20 @@ Array.prototype.fillundef = function (def, lastindex) {
     }
 };
 function createSelectBox(option, selected, attr) {
-    let attrtext = "";
+    let select = $("<select></select>");
     for (let k in attr) {
-        attrtext = attrtext + ` ${k}="${attr[k]}"`;
+        select.attr(k, attr[k]);
     }
-    let s = `<select${attrtext}>`;
     for (let i in option) {
-        let issl = i == selected ? "selected" : "";
-        s += `<option value="${i}" ${issl}>${option[i]}</option>`;
+        let opt = $("<option></option>");
+        opt.attr("value", i);
+        opt.text(option[i]);
+        if (i == selected) {
+            opt.attr("selected", "selected");
+        }
+        opt.appendTo(select);
     }
-    s += "</select>";
-    return s;
+    return select;
 }
 const COLORLIST = {
     0: "選択▼",
@@ -190,27 +193,6 @@ const colorSettingDefault = {
         option: nameColor,
     },
 };
-class Tr {
-    constructor(id, cl) {
-        this.id = id ? `id="${id}"` : "";
-        this.cl = cl ? `class="${cl}"` : "";
-        this.tds = [];
-    }
-    add(val, cl, colspan) {
-        let c = cl ? `class='${cl}'` : "";
-        let d = colspan ? `colspan=${colspan}` : "";
-        let td = `<td ${c} ${d}>${val}</td>`;
-        this.tds.push(td);
-    }
-    text() {
-        let tds = this.tds.join("");
-        let tr = `<tr ${this.id} ${this.cl}>${tds}</tr>`;
-        return tr;
-    }
-    appendTo(jQueryObject) {
-        jQueryObject.append(this.text());
-    }
-}
 class AbstParser {
 }
 class WakameteParser extends AbstParser {
@@ -346,9 +328,13 @@ class WakameteParser extends AbstParser {
                 let content = $(tr).children().eq(1).html();
                 let namehtml = $(tr).children().eq(0).html();
                 let color = namehtml.match(/color="(.+?)"/)[1];
+                let contenthtml = $(tr).children().eq(1).html();
+                let size = contenthtml.includes('size="+1"') ? "big" :
+                    contenthtml.includes('size="-1"') ? "small" : "normal";
                 let log = new Log({
                     name: name,
                     color: color,
+                    size: size,
                     content: content,
                 });
                 logs.push(log);
@@ -371,11 +357,15 @@ class SikigamiParser extends AbstParser {
         return location.href.match(/room_no=(\d+)/)[1];
     }
     today() {
-        var day = /<font size="\+2">(\d{1,2})/.exec($("body").html());
+        var timetable = $("table.time-table");
+        if (timetable.length == 0) {
+            return 0;
+        }
+        var day = timetable.eq(0).html().match(/(\d+) 日目/);
         return day ? +day[1] - 1 : 0;
     }
     isDaytime() {
-        return /game_night\.css/.test($("head").html());
+        return !/game_night\.css/.test($("head").html());
     }
     vital() {
         let vitals = [];
@@ -483,13 +473,14 @@ class SikigamiParser extends AbstParser {
                 name: name,
                 color: color,
                 content: content,
+                size: "normal"
             });
             logs.push(log);
         });
         return logs;
     }
     isUnvote() {
-        return /<font size="\+2">投票/.test($("body").html());
+        return this.isDaytime() && $(".system-vote").length > 0;
     }
 }
 class MeatMemo {
@@ -516,6 +507,8 @@ class MeatMemo {
         this.init();
     }
     init() {
+        if (/game_up/.test(location.href))
+            return false;
         this.load();
         this.prepare();
         this.setting.init();
@@ -524,7 +517,6 @@ class MeatMemo {
         this.random.init();
         $(() => {
             this.on();
-            this.utility.init();
         });
     }
     get playerNum() {
@@ -540,16 +532,16 @@ class MeatMemo {
     prepare() {
         let container = `
 <div id="memoContainer">
-
+<!--
 <div id="memoMenu">
-    <div class='button' id='importButton'>ログの取り込み</div>
-    <div class='button' id='resetButton'>リセット</div>
-    <div class='button' id='reloadButton'>更新</div>
 </div>
-
+-->
 <div id="memoTab">
     <div class='tab active' data-value='log'>発言ログ</div>
     <div class='tab' data-value='vote'>投票履歴</div>
+    <div class='button' id='importButton'>ログの取り込み</div>
+    <div class='button' id='resetButton'>リセット</div>
+    <div class='button' id='reloadButton'>更新</div>
 </div>
 
 <div id="memoBody">
@@ -831,10 +823,21 @@ class Player {
         this.jobresult[day].judge = judge;
     }
     setTarget(day, target) {
-        if (!target)
-            return false;
         this.jobresult.fillundef({ target: 99, judge: "notinput" }, +day);
         this.jobresult[day].target = target;
+    }
+    canCO(day) {
+        switch (this.job) {
+            case "fortune":
+                return day < this.death.cantco;
+            case "necro":
+                return day < this.death.cantco && day > 1;
+            default:
+                return false;
+        }
+    }
+    jobInitial() {
+        return jobinitial[this.reasoning] + jobinitial[this.job];
     }
 }
 class PlayerManager {
@@ -953,48 +956,66 @@ class PlayerManager {
             return false;
         let playersList = this.listforSelect();
         let newestDay = this.memo.newestDay;
-        let namerow = new Tr("", "namerow");
-        namerow.add("<a id='filterlink_99_99'>全ログ</a>");
+        let namerow = $("<tr></tr>").addClass("namerow");
+        let a = $("<a></a>").attr("id", "filterlink_99_99").text("全ログ");
+        $("<td></td>")
+            .append(a)
+            .appendTo(namerow);
         for (let player of this.list) {
-            namerow.add(`<a id='filterlink_${player.no}_99'>${player.name}</a>`, `player_${player.no}`);
+            let a = $("<a></a>")
+                .text(player.name)
+                .attr("id", `filterlink_${player.no}_99`);
+            $("<td></td>")
+                .append(a)
+                .addClass(`player_${player.no}`)
+                .appendTo(namerow);
         }
         namerow.appendTo(playerInfoTable);
-        let jobrow = new Tr("", "jobrow");
-        jobrow.add("CO");
+        let jobrow = $("<tr></tr>").addClass("jobrow");
+        $("<td></td>").text("CO").appendTo(jobrow);
         for (let player of this.list) {
             let select = createSelectBox(joblist, player.job, {
                 id: `player_${player.no}_job`,
                 class: "jobselect",
             });
-            jobrow.add(select, "player_" + player.no);
+            $("<td></td>").append(select).addClass("player_" + player.no).appendTo(jobrow);
         }
         jobrow.appendTo(playerInfoTable);
-        jobrow = new Tr("", "jobrow");
-        jobrow.add("推理");
+        let reasoningrow = $("<tr></tr>").addClass("jobrow");
+        $("<td></td>").text("推理").appendTo(reasoningrow);
         for (let player of this.list) {
             let select = createSelectBox(reasoninglist, player.reasoning, {
                 id: `player_${player.no}_reasoning`,
                 class: "reasoningselect",
             });
-            jobrow.add(select, "player_" + player.no);
+            $("<td></td>").append(select).addClass("player_" + player.no).appendTo(reasoningrow);
         }
-        playerInfoTable.append(jobrow.text());
+        reasoningrow.appendTo(playerInfoTable);
         for (let day = 1; day <= newestDay; day++) {
-            let row = new Tr("", "talknumrow");
-            row.add(`<a id="filterlink_99_${day}">${day + 1}日目</a>`);
+            let row = $("<tr></tr>").addClass("talknumrow");
+            let a = $("<a></a>").text(`${day + 1}日目`).attr("id", `filterlink_99_${day}`);
+            $("<td></td>")
+                .append(a)
+                .appendTo(row);
             for (let player of this.list) {
                 let no = player.no;
-                let talknum = this.memo.log.talknum(player.name, day) || "";
-                row.add(`<a id=filterlink_${no}_${day}>${talknum}</a>`, `player_${no}`);
+                let talknum = this.memo.log.talknum(player.name, day);
+                let td = $("<td></td>").addClass(`player_${no}`);
+                if (talknum) {
+                    $("<a></a>")
+                        .text(talknum)
+                        .attr("id", `filterlink_${no}_${day}`)
+                        .appendTo(td);
+                }
+                td.appendTo(row);
             }
             row.appendTo(playerInfoTable);
         }
         for (let day = 1; day <= newestDay; day++) {
-            let resultrow = new Tr("result_" + day, "resultrow");
-            resultrow.add(`占霊結果 ${day + 1}日目`);
+            let resultrow = $("<tr></tr>").attr("id", "result_" + day).addClass("resultrow");
+            $("<td></td>").text(`占霊結果 ${day + 1}日目`).appendTo(resultrow);
             for (let player of this.list) {
-                if ((player.job == "fortune" && day < player.death.cantco) ||
-                    (player.job == "necro" && day < player.death.cantco && day > 1)) {
+                if (player.canCO(day)) {
                     let select1 = createSelectBox(playersList, 99, {
                         id: `target_${player.no}_${day}`,
                         class: "jobtarget",
@@ -1003,13 +1024,19 @@ class PlayerManager {
                         id: `judge_${player.no}_${day}`,
                         class: "jobjudge",
                     });
-                    resultrow.add(select1 + select2, "player_" + player.no);
+                    $("<td></td>")
+                        .append(select1)
+                        .append(select2)
+                        .addClass("player_" + player.no)
+                        .appendTo(resultrow);
                 }
                 else {
-                    resultrow.add("", "player_" + player.no);
+                    $("<td></td>")
+                        .addClass("player_" + player.no)
+                        .appendTo(resultrow);
                 }
             }
-            playerInfoTable.append(resultrow.text());
+            playerInfoTable.append(resultrow);
         }
         this.refreshJobResult();
         this.memo.switchAliveFilter();
@@ -1075,26 +1102,26 @@ class PlayerManager {
         let voteTable = $("#voteTable");
         let newestDay = this.memo.newestDay;
         voteTable.empty();
-        var tr = new Tr();
-        tr.add("プレイヤー");
+        let tr = $("<tr></tr>");
+        $("<td></td>").text("プレイヤー").appendTo(tr);
         for (var day = 1; day <= newestDay; day++) {
             if (!this.list[0].vote[day])
                 continue;
             let colspan = this.list[0].vote[day].length;
-            tr.add(`${day + 1}日目`, "", colspan);
+            $("<td></td>").text(`${day + 1}日目`).attr("colspan", colspan).appendTo(tr);
         }
-        voteTable.append(tr.text());
+        voteTable.append(tr);
         for (var player of this.list) {
-            tr = new Tr();
-            tr.add(player.name);
+            let tr = $("<tr></tr>");
+            $("<td></td>").text(player.name).appendTo(tr);
             for (day = 1; day <= newestDay; day++) {
                 if (!player.vote[day])
                     continue;
                 for (let vote of player.vote[day]) {
-                    tr.add(vote);
+                    $("<td></td>").text(vote).appendTo(tr);
                 }
             }
-            voteTable.append(tr.text());
+            voteTable.append(tr);
         }
     }
     refreshJobResult() {
@@ -1126,19 +1153,19 @@ class PlayerManager {
         let summaryTable = $("#summaryTable");
         let newestDay = this.memo.newestDay;
         summaryTable.empty();
-        var tr = new Tr();
-        tr.add("", "", 2);
+        var tr = $("<tr></tr>");
+        $("<td></td>").attr("colspan", 2).appendTo(tr);
         for (var day = 1; day <= newestDay; day++) {
-            tr.add("" + (day + 1) + "日目");
+            $("<td></td>").text(`${day + 1}日目`).appendTo(tr);
         }
         tr.appendTo(summaryTable);
         var fortunes = this.list.filter((p) => p.job == "fortune");
         let necros = this.list.filter((p) => p.job == "necro");
         let ability = fortunes.concat(necros);
         for (let player of ability) {
-            tr = new Tr();
-            tr.add(player.job == "fortune" ? "占い師" : "霊能者");
-            tr.add(player.name);
+            let tr = $("<tr></tr>");
+            $("<td></td>").text(player.job == "fortune" ? "占い師" : "霊能者").appendTo(tr);
+            $("<td></td>").text(player.name).appendTo(tr);
             for (day = 1; day <= newestDay; day++) {
                 let name = "", judge = "";
                 if (player.jobresult[day] && player.jobresult[day].target != 99) {
@@ -1146,7 +1173,7 @@ class PlayerManager {
                     name = this.list[result.target].name;
                     judge = resultlist[result.judge];
                 }
-                tr.add(name + judge);
+                $("<td></td>").text(name + judge).appendTo(tr);
             }
             tr.appendTo(summaryTable);
         }
@@ -1154,20 +1181,22 @@ class PlayerManager {
             let deaths = this.list.filter((p) => p.death.reason == reason);
             if (!deaths.length)
                 continue;
-            tr = new Tr();
-            tr.add(reasonflavor[reason], "", 2);
+            let tr = $("<tr></tr>");
+            $("<td></td>").text(reasonflavor[reason]).attr("colspan", 2).appendTo(tr);
             for (day = 1; day <= newestDay; day++) {
-                let cn = deaths.filter((p) => p.death.day == day).map((p) => p.name);
-                let text = cn.length ? cn.join("<br>") : "-";
-                tr.add(text);
+                let cns = deaths.filter((p) => p.death.day == day).map((p) => p.name);
+                let td = $("<td></td>");
+                for (let cn of cns) {
+                    $("<div></div>").text(cn).appendTo(cn);
+                }
+                td.appendTo(tr);
             }
             tr.appendTo(summaryTable);
         }
     }
     refreshJobInitial() {
         for (let player of this.list) {
-            let job = jobinitial[player.reasoning] + jobinitial[player.job];
-            $("tr.talk_player" + player.no + " span").html(job);
+            $("tr.talk_player" + player.no + " span").text(player.jobInitial());
         }
     }
     coloringGray() {
@@ -1206,6 +1235,7 @@ class Log {
     constructor(data) {
         this.name = data.name;
         this.color = data.color;
+        this.size = data.size;
         this.content = data.content;
     }
     forSave() {
@@ -1213,6 +1243,7 @@ class Log {
             name: this.name,
             color: this.color,
             content: this.content,
+            size: this.size
         };
     }
 }
@@ -1271,16 +1302,42 @@ class LogManager {
             if (!logs)
                 return;
             let tbody = $("<tbody></tbody>", { id: "log_day" + day });
-            let trs = `<tr class="systemlog"><td colspan="2">${day + 1}日目</td></tr>`;
+            let tr = $("<tr></tr>").addClass("systemlog");
+            $("<td></td>").attr("colspan", 2).text(`${day + 1}日目`).appendTo(tr);
+            tr.appendTo(tbody);
             for (let log of logs) {
                 let cl = "talk_player" + this.memo.playerManager.no(log.name);
-                let name = `<font color="${log.color}">◆</font><b>${log.name}</b>さん`;
+                let tr = $("<tr></tr>").addClass(cl);
+                let td = $("<td></td>");
                 if (log.name == "ゲームマスター") {
-                    name = `<font color="${log.color}">◆<b>${log.name}</b></font>`;
+                    $("<font></font>")
+                        .attr("color", log.color)
+                        .text("◆")
+                        .append($("<b></b>").text(log.name))
+                        .appendTo(td);
                 }
-                trs += `<tr class="${cl}"><td>${name}<span class='jobinitial'></span></td><td>${log.content}</td></tr>`;
+                else {
+                    $("<font></font>")
+                        .attr("color", log.color)
+                        .text("◆")
+                        .appendTo(td);
+                    $("<b></b>")
+                        .text(log.name)
+                        .appendTo(td);
+                    $("<font></font>")
+                        .text("さん")
+                        .appendTo(td);
+                }
+                $("<span></span>").addClass("jobinitial").appendTo(td);
+                td.appendTo(tr);
+                let content = log.content
+                    .replace(/<br>/g, "\n")
+                    .replace(/<("[^"]*"|'[^']*'|[^'">])*>/g, '')
+                    .replace(/\n/g, "<br>");
+                $("<td></td>").addClass(log.size).html(content).appendTo(tr);
+                tr.appendTo(tbody);
             }
-            tbody.append(trs).prependTo(discussLogTable);
+            tbody.prependTo(discussLogTable);
         });
         this.memo.playerManager.refreshJobInitial();
     }
@@ -1321,9 +1378,10 @@ class ColorSetting {
         });
         for (let key in this.options) {
             let item = this.options[key];
-            let tr = new Tr();
-            tr.add(item.name);
-            tr.add(createSelectBox(item.option, item.value, { id: key }));
+            let tr = $("<tr></tr>");
+            let select = createSelectBox(item.option, item.value, { id: key });
+            $("<td></td>").text(item.name).appendTo(tr);
+            $("<td></td>").append(select).appendTo(tr);
             tr.appendTo(settingTable);
         }
         let _this = this;
@@ -1368,12 +1426,9 @@ class Setting {
     constructor(memo) {
         this.memo = memo;
         this.options = {};
+        this.load();
     }
     init() {
-        for (let key in settingDefault) {
-            this.options[key] = new SettingOption(settingDefault[key]);
-        }
-        this.load();
         let settingArea = $("<div></div>", { id: "setting", class: "window southEast" }).appendTo(this.memo.parser.body());
         $("#toolArea_hid").append("<a id='dispsetting'>設定</a>");
         let settingTable = $("<table></table>", { id: "settingtable" }).appendTo(settingArea);
@@ -1386,9 +1441,10 @@ class Setting {
         });
         for (let key in this.options) {
             let item = this.options[key];
-            let tr = new Tr();
-            tr.add(item.name);
-            tr.add(createSelectBox(item.option, item.value, { id: key }));
+            let tr = $("<tr></tr>");
+            let select = createSelectBox(item.option, item.value, { id: key });
+            $("<td></td>").text(item.name).appendTo(tr);
+            $("<td></td>").append(select).appendTo(tr);
             tr.appendTo(settingTable);
         }
         let _this = this;
@@ -1405,6 +1461,9 @@ class Setting {
         this.save();
     }
     load() {
+        for (let key in settingDefault) {
+            this.options[key] = new SettingOption(settingDefault[key]);
+        }
         let s = localStorage.getItem("memoSetting");
         if (!s)
             return false;
@@ -1470,7 +1529,7 @@ class Random {
     copy(text) {
         $("#forCopy").val(text).select();
         document.execCommand("copy");
-        $("#randomMessage").html("コピーしました。");
+        $("#randomMessage").text("コピーしました。");
     }
     rnd(n) {
         return Math.floor(Math.random() * n);
@@ -1534,7 +1593,7 @@ class Style {
         else {
             $("#memoContainer").addClass("layout-normal");
         }
-        $("<style></style>").html(`:root{--theme-color:${theme_color}; --sub-color:${sub_color};}`).appendTo($("head"));
+        $("<style></style>").text(`:root{--theme-color:${theme_color}; --sub-color:${sub_color};}`).appendTo($("head"));
     }
 }
 class Utility {
@@ -1543,13 +1602,18 @@ class Utility {
         this.setting = memo.setting;
         this.left = 0;
         this.autoReloadFlg = 0;
+        $(() => {
+            this.init();
+        });
     }
     init() {
+        if (/game_play/.test(location.href))
+            return false;
+        this.receiveKeyResponse();
         if (this.memo.serverName != "wakamete")
             return false;
         this.memo.playerManager.coloring();
         this.setAlertVote();
-        this.receiveKeyResponse();
         this.dispSuggest();
         this.highlightDeathnote();
         this.setAutoReload();
@@ -1559,7 +1623,9 @@ class Utility {
             return false;
         let isAutoReload = this.memo.isAutoReload;
         let onoff = isAutoReload ? "ON" : "OFF";
-        $("#floatButtonArea").prepend("<div><a id='autoReload'>自動更新：" + onoff + "</a></div>");
+        let a = $("<a></a>").attr("id", "autoReload").text("自動更新：" + onoff);
+        let div = $("<div></div>").append(a);
+        $("#floatButtonArea").prepend(div);
         if (isAutoReload)
             this.setReloadTimer();
         $("#autoReload").on("click", () => {
@@ -1598,7 +1664,7 @@ class Utility {
                     },
                 },
             });
-            warningArea.html("未投票です！ ");
+            warningArea.text("未投票です！ ");
             warningArea.append(cmbplayer);
             warningArea.append(votebutton);
             cmbplayer.on("change", function () {
@@ -1613,24 +1679,33 @@ class Utility {
         if (this.memo.settingIs("send_support", "ctrl")) {
             $(window).on("keydown", function (e) {
                 if (e.ctrlKey && e.keyCode == 13) {
-                    document.forms[0].submit();
+                    setTimeout(function () {
+                        $("textarea").val("");
+                    }, 50);
+                    var length = document.forms.length;
+                    document.forms[length - 1].submit();
                 }
             });
         }
         if (this.memo.settingIs("send_support", "shift")) {
             $(window).on("keydown", function (e) {
                 if (e.shiftKey && e.keyCode == 13) {
-                    document.forms[0].submit();
+                    setTimeout(function () {
+                        $("textarea").val("");
+                    }, 50);
+                    var length = document.forms.length;
+                    document.forms[length - 1].submit();
                 }
             });
         }
     }
     dispSuggest() {
         var colorselect = createSelectBox(COLORLIST, 0, { id: "colorlist" });
-        var coloredit = `<td class="coloredit">アイコン色：</td><td class="coloredit">${colorselect}</td>`;
+        var coloredittd = `<td class="coloredit">アイコン色：</td>`;
+        var selecttd = $("<td></td>").addClass("coloredit").append(colorselect);
         var iconsupport = "<td class='iconsupport'><input type='button' id='pasteurl' value='/../../imgbbs/img/'></td>";
         let commandtable = $("#w_command");
-        commandtable.find("td").eq(1).after(coloredit).after(iconsupport);
+        commandtable.find("td").eq(1).after(coloredittd).after(selecttd).after(iconsupport);
         commandtable.find("td").eq(-2).addClass("cmbplayer");
         commandtable.find("td").eq(-1).addClass("cmbplayer");
         let _this = this;

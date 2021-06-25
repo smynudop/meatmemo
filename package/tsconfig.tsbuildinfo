@@ -157,8 +157,8 @@
         "affectsGlobalScope": true
       },
       "../src/meatmemo.ts": {
-        "version": "e703187d681af20e3ba4ee30ca2819432ec9201668ec3ba3269e0cff8c286f58",
-        "signature": "3729b78f90af5602f37e08ea336e2db817434cf24f498dc8e196f5e17c7b0a26",
+        "version": "c60418a848d62418e1710948d21d99576896848cc43e04bdc6da81173e071b36",
+        "signature": "3073a7541d2a46f1372b3bef06e57a89232a58500d0fe1fb8759816c221d51b4",
         "affectsGlobalScope": true
       },
       "../src/proto.ts": {
