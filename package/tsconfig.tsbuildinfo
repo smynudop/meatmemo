@@ -157,7 +157,7 @@
         "affectsGlobalScope": true
       },
       "../src/meatmemo.ts": {
-        "version": "c60418a848d62418e1710948d21d99576896848cc43e04bdc6da81173e071b36",
+        "version": "05d7cdac1a79a31b9550c2e04a78b76b54dbb4a86d48505acca3d6ae90a2e0eb",
         "signature": "3073a7541d2a46f1372b3bef06e57a89232a58500d0fe1fb8759816c221d51b4",
         "affectsGlobalScope": true
       },
@@ -166,34 +166,34 @@
         "signature": "0dad14a50d8b2980832ec5a1f39a8f3414d082929fd4e95d95abc8aeade34156",
         "affectsGlobalScope": true
       },
-      "../../../node_modules/@types/jquery/jquerystatic.d.ts": {
-        "version": "2a19c7dd007f71b9db87dba915e20d894dbdac8aa8fab5d1c3083a61f2316a5c",
-        "signature": "2a19c7dd007f71b9db87dba915e20d894dbdac8aa8fab5d1c3083a61f2316a5c",
+      "../src/node_modules/@types/jquery/jquerystatic.d.ts": {
+        "version": "66b1dd44bde78456344cd079a37443f90e54ffe3aa3ad5ac367a4698334a58fb",
+        "signature": "66b1dd44bde78456344cd079a37443f90e54ffe3aa3ad5ac367a4698334a58fb",
         "affectsGlobalScope": true
       },
-      "../../../node_modules/@types/jquery/jquery.d.ts": {
-        "version": "c7e41611fca9dda55b40fdaabc0a2cb3b254517a8040515dcd7cb2bef67a065f",
-        "signature": "c7e41611fca9dda55b40fdaabc0a2cb3b254517a8040515dcd7cb2bef67a065f",
+      "../src/node_modules/@types/jquery/jquery.d.ts": {
+        "version": "513dfbfe04b52253f35007545694c2a99c313fdb6b836bdb8cbc9c7fb0ff6166",
+        "signature": "513dfbfe04b52253f35007545694c2a99c313fdb6b836bdb8cbc9c7fb0ff6166",
         "affectsGlobalScope": true
       },
-      "../../../node_modules/@types/jquery/misc.d.ts": {
-        "version": "b209302269a2eddff39d1b927cbf054c520b01c1bc35a6d48857bdb85caca497",
-        "signature": "b209302269a2eddff39d1b927cbf054c520b01c1bc35a6d48857bdb85caca497",
+      "../src/node_modules/@types/jquery/misc.d.ts": {
+        "version": "a4832e26b82049fc2774c96ca6e1c17b2c204246570a62fdbe7e8ee8af2cd4d4",
+        "signature": "a4832e26b82049fc2774c96ca6e1c17b2c204246570a62fdbe7e8ee8af2cd4d4",
         "affectsGlobalScope": true
       },
-      "../../../node_modules/@types/jquery/legacy.d.ts": {
-        "version": "8c4a3355af2c490a8af67c4ec304e970424a15ef648a3c3fbb3ee6634461e2cc",
-        "signature": "8c4a3355af2c490a8af67c4ec304e970424a15ef648a3c3fbb3ee6634461e2cc",
+      "../src/node_modules/@types/jquery/legacy.d.ts": {
+        "version": "6f1f78e8c2a5c7cd2c38aa9cc5da26d9c039f2bbfa753f2a0a54ce41c4dff8d0",
+        "signature": "6f1f78e8c2a5c7cd2c38aa9cc5da26d9c039f2bbfa753f2a0a54ce41c4dff8d0",
         "affectsGlobalScope": true
       },
-      "../../../node_modules/@types/sizzle/index.d.ts": {
-        "version": "7ddac8a4ba398441cfd6d8a69380401378f122ee8cc2d848e6e32f4db2b6c876",
-        "signature": "7ddac8a4ba398441cfd6d8a69380401378f122ee8cc2d848e6e32f4db2b6c876",
+      "../src/node_modules/@types/sizzle/index.d.ts": {
+        "version": "ec89427601297d439c961528832a75017d9356bec2ee42c1d16f2274590d9330",
+        "signature": "ec89427601297d439c961528832a75017d9356bec2ee42c1d16f2274590d9330",
         "affectsGlobalScope": false
       },
-      "../../../node_modules/@types/jquery/index.d.ts": {
-        "version": "83b41c4e728a2ebc360331cb09a235edf7fb3525ccabe8434ee0d9b61d4f4783",
-        "signature": "83b41c4e728a2ebc360331cb09a235edf7fb3525ccabe8434ee0d9b61d4f4783",
+      "../src/node_modules/@types/jquery/index.d.ts": {
+        "version": "2b1af4170f6dfa90f43d2fe3d6c36f95b7fa121aa434a2acefb763d7be460a53",
+        "signature": "2b1af4170f6dfa90f43d2fe3d6c36f95b7fa121aa434a2acefb763d7be460a53",
         "affectsGlobalScope": false
       }
     },
@@ -221,21 +221,21 @@
       "configFilePath": "../src/tsconfig.json"
     },
     "referencedMap": {
-      "../../../node_modules/@types/jquery/index.d.ts": [
-        "../../../node_modules/@types/jquery/jquery.d.ts",
-        "../../../node_modules/@types/jquery/jquerystatic.d.ts",
-        "../../../node_modules/@types/jquery/legacy.d.ts",
-        "../../../node_modules/@types/jquery/misc.d.ts",
-        "../../../node_modules/@types/sizzle/index.d.ts"
+      "../src/node_modules/@types/jquery/index.d.ts": [
+        "../src/node_modules/@types/jquery/jquery.d.ts",
+        "../src/node_modules/@types/jquery/jquerystatic.d.ts",
+        "../src/node_modules/@types/jquery/legacy.d.ts",
+        "../src/node_modules/@types/jquery/misc.d.ts",
+        "../src/node_modules/@types/sizzle/index.d.ts"
       ]
     },
     "exportedModulesMap": {
-      "../../../node_modules/@types/jquery/index.d.ts": [
-        "../../../node_modules/@types/jquery/jquery.d.ts",
-        "../../../node_modules/@types/jquery/jquerystatic.d.ts",
-        "../../../node_modules/@types/jquery/legacy.d.ts",
-        "../../../node_modules/@types/jquery/misc.d.ts",
-        "../../../node_modules/@types/sizzle/index.d.ts"
+      "../src/node_modules/@types/jquery/index.d.ts": [
+        "../src/node_modules/@types/jquery/jquery.d.ts",
+        "../src/node_modules/@types/jquery/jquerystatic.d.ts",
+        "../src/node_modules/@types/jquery/legacy.d.ts",
+        "../src/node_modules/@types/jquery/misc.d.ts",
+        "../src/node_modules/@types/sizzle/index.d.ts"
       ]
     },
     "semanticDiagnosticsPerFile": [
@@ -271,13 +271,13 @@
       "../../../appdata/roaming/npm/node_modules/typescript/lib/lib.es2019.symbol.d.ts",
       "../../../appdata/roaming/npm/node_modules/typescript/lib/lib.es5.d.ts",
       "../src/meatmemo.ts",
-      "../src/proto.ts",
-      "../../../node_modules/@types/jquery/index.d.ts",
-      "../../../node_modules/@types/jquery/jquery.d.ts",
-      "../../../node_modules/@types/jquery/jquerystatic.d.ts",
-      "../../../node_modules/@types/jquery/legacy.d.ts",
-      "../../../node_modules/@types/jquery/misc.d.ts",
-      "../../../node_modules/@types/sizzle/index.d.ts"
+      "../src/node_modules/@types/jquery/index.d.ts",
+      "../src/node_modules/@types/jquery/jquery.d.ts",
+      "../src/node_modules/@types/jquery/jquerystatic.d.ts",
+      "../src/node_modules/@types/jquery/legacy.d.ts",
+      "../src/node_modules/@types/jquery/misc.d.ts",
+      "../src/node_modules/@types/sizzle/index.d.ts",
+      "../src/proto.ts"
     ]
   },
   "version": "4.0.2"

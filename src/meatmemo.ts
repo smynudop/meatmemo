@@ -382,7 +382,8 @@ class WakameteParser extends AbstParser{
                     let name = $(tr).children().eq(0).find("b").eq(0).html()
                     let content = $(tr).children().eq(1).html()
                     let namehtml = $(tr).children().eq(0).html()
-                    let color = namehtml.match(/color="(.+?)"/)![1]
+                    let colorhtml = namehtml.match(/color="(.+?)"/)
+                    let color = colorhtml ? colorhtml[1] : "#000000"
 
                     let contenthtml = $(tr).children().eq(1).html()
                     let size = contenthtml.includes('size="+1"') ? "big" : 
