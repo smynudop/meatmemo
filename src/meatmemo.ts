@@ -10,7 +10,7 @@ Array.prototype.fillundef = function (def, lastindex) {
     }
 }
 
-function createSelectBox(option:Record<string, string>, selected:number | string,  attr: Record<string, string>) {
+function createSelectBox(option: Record<string, string>, selected: number | string, attr: Record<string, string>) {
 
     let select = $("<select></select>")
 
@@ -22,11 +22,11 @@ function createSelectBox(option:Record<string, string>, selected:number | string
         let opt = $("<option></option>")
         opt.attr("value", i)
         opt.text(option[i])
-        if(i == selected){
+        if (i == selected) {
             opt.attr("selected", "selected")
         }
         opt.appendTo(select)
-    }    
+    }
 
     return select
 
@@ -179,7 +179,7 @@ interface iColorSetting {
     option: typeof nameColor
 }
 
-const colorSettingDefault: Record<string, iColorSetting> =   {
+const colorSettingDefault: Record<string, iColorSetting> = {
     gray: {
         value: "black",
         name: "グレー",
@@ -221,49 +221,49 @@ type iFortuneResult = keyof typeof resultlist
 type iJob = keyof typeof joblist
 type iReasoning = keyof typeof reasoninglist
 
-interface iVote{
+interface iVote {
     day: number
     targets: string[]
 }
 
-abstract class AbstParser{
+abstract class AbstParser {
     abstract body(): JQuery<HTMLElement>
     abstract villageNo(): string
     abstract today(): number
     abstract isDaytime(): boolean
-    abstract eachPlayer(no:number, html: string): Player
+    abstract eachPlayer(no: number, html: string): Player
     abstract player(): Player[]
     abstract vital(): iVital[]
-    abstract vote():Record<string, iVote>
+    abstract vote(): Record<string, iVote>
     abstract death(): Record<string, iDeath>
     abstract discuss(): Log[]
     abstract isUnvote(): boolean
 }
 
-class WakameteParser extends AbstParser{
-    constructor(){
+class WakameteParser extends AbstParser {
+    constructor() {
         super()
     }
 
-    body(){
+    body() {
         return $("body")
     }
 
-    villageNo(){
+    villageNo() {
         return $("title").text().slice(0, 6)
     }
 
-    today(){
+    today() {
         var day = /<font size="\+2">(\d{1,2})/.exec($("body").html())
         return day ? +day[1] - 1 : 0
     }
 
-    isDaytime(){
+    isDaytime() {
         return $("body").attr("bgcolor") != "#000000";
     }
 
-    vital(){
-        let vitals:iVital[] = []
+    vital() {
+        let vitals: iVital[] = []
         $("#w_player")
             .find("td:odd")
             .each((i, v) => {
@@ -273,9 +273,9 @@ class WakameteParser extends AbstParser{
         return vitals
     }
 
-    death(){
+    death() {
         let deathList: HTMLElement[] = []
-        let result:Record <string, iDeath> = {}
+        let result: Record<string, iDeath> = {}
         $("#w_discuss")
             .find("td[colspan='2']")
             .each((i, tr) => {
@@ -311,8 +311,8 @@ class WakameteParser extends AbstParser{
         return result
     }
 
-    vote(){
-        let result:Record<string, iVote> = {}
+    vote() {
+        let result: Record<string, iVote> = {}
 
         let votelog: HTMLElement[] = []
         $("#w_discuss")
@@ -336,11 +336,11 @@ class WakameteParser extends AbstParser{
                 .each((i, vote) => {
                     let voter = $(vote).find("b").eq(0).text()
                     let target = $(vote).find("b").eq(1).text()
-                    if(voter){
-                        if(!result[voter]){
-                            result[voter] = {day: day, targets: []}
+                    if (voter) {
+                        if (!result[voter]) {
+                            result[voter] = { day: day, targets: [] }
                         }
-                         result[voter].targets.push(target)
+                        result[voter].targets.push(target)
                     }
 
                 })
@@ -350,7 +350,7 @@ class WakameteParser extends AbstParser{
 
     eachPlayer(no: number, html: string) {
         let name = html.split("<br>")[0]
-        let vital:iVital = /生存中/.test(html) ? "alive" : "death"
+        let vital: iVital = /生存中/.test(html) ? "alive" : "death"
         return new Player({
             no: no,
             name: name,
@@ -358,7 +358,7 @@ class WakameteParser extends AbstParser{
         })
     }
 
-    player(){
+    player() {
         let players: Player[] = []
         $("#w_player")
             .find("td:odd")
@@ -372,8 +372,8 @@ class WakameteParser extends AbstParser{
         return players
     }
 
-    discuss(){
-        let logs:Log[] = []
+    discuss() {
+        let logs: Log[] = []
         if (!this.isDaytime) return []
         $("#w_discuss")
             .find("tr")
@@ -386,7 +386,7 @@ class WakameteParser extends AbstParser{
                     let color = colorhtml ? colorhtml[1] : "#000000"
 
                     let contenthtml = $(tr).children().eq(1).html()
-                    let size = contenthtml.includes('size="+1"') ? "big" : 
+                    let size = contenthtml.includes('size="+1"') ? "big" :
                         contenthtml.includes('size="-1"') ? "small" : "normal"
 
                     let log = new Log({
@@ -399,56 +399,56 @@ class WakameteParser extends AbstParser{
                     logs.push(log)
                 }
             })
-            return logs
+        return logs
     }
 
-    isUnvote(){
+    isUnvote() {
         return /<font size="\+2">投票/.test($("body").html())
     }
 
 }
 
-class SikigamiParser extends AbstParser{
-    constructor(){
+class SikigamiParser extends AbstParser {
+    constructor() {
         super()
     }
 
-    body(){
+    body() {
         return $("body")
     }
 
-    villageNo(){
+    villageNo() {
         return location.href.match(/room_no=(\d+)/)![1]
     }
 
-    today(){
+    today() {
         var timetable = $("table.time-table")
-        if (timetable.length == 0){
+        if (timetable.length == 0) {
             return 0
         }
         var day = timetable.eq(0).html().match(/(\d+) 日目/)
         return day ? +day[1] - 1 : 0
     }
 
-    isDaytime(){
+    isDaytime() {
         return !/game_night\.css/.test($("head").html())
     }
 
-    vital(){
-        let vitals:iVital[] = []
+    vital() {
+        let vitals: iVital[] = []
 
         this.body()
-        .find("div.player table td:odd")
-        .each((i, v) => {
-            if (!$(v).html()) return false
-            vitals.push(/生存中/.test($(v).html()) ? "alive" : "death")
-        })
+            .find("div.player table td:odd")
+            .each((i, v) => {
+                if (!$(v).html()) return false
+                vitals.push(/生存中/.test($(v).html()) ? "alive" : "death")
+            })
         return vitals
     }
 
-    death(){
+    death() {
         let deathList: HTMLElement[] = []
-        let result:Record <string, iDeath> = {}
+        let result: Record<string, iDeath> = {}
         $("table.dead-type td")
             .each((i, tr) => {
                 if (/(で発見|結果処刑|突然死|猫又の呪い)/.test($(tr).text())) {
@@ -483,36 +483,36 @@ class SikigamiParser extends AbstParser{
         return result
     }
 
-    vote(){
-        let result:Record<string, iVote> = {}
+    vote() {
+        let result: Record<string, iVote> = {}
 
         let tables = $("table.vote-list")
-        if(!tables.length) return result
+        if (!tables.length) return result
 
-        tables.each((i,table) => {
+        tables.each((i, table) => {
             let day = $(table).find("td").eq(0).text().match(/(\d+) 日目/)![1]
             $(table)
                 .find("tr")
                 .each((i, vote) => {
                     let voter = $(vote).find(".vote-name").eq(0).text()
                     let target = $(vote).find(".vote-name").eq(1).text()
-                    if(voter){
-                        if(!result[voter]){
-                            result[voter] = {day: +day, targets: []}
+                    if (voter) {
+                        if (!result[voter]) {
+                            result[voter] = { day: +day, targets: [] }
                         }
-                         result[voter].targets.push(target)
+                        result[voter].targets.push(target)
                     }
 
                 })
         })
 
-        
+
         return result
     }
 
     eachPlayer(no: number, html: string) {
         let name = html.split("<br>")[0].split(">").pop()
-        let vital:iVital = /生存中/.test(html) ? "alive" : "death"
+        let vital: iVital = /生存中/.test(html) ? "alive" : "death"
         return new Player({
             no: no,
             name: name,
@@ -520,7 +520,7 @@ class SikigamiParser extends AbstParser{
         })
     }
 
-    player(){
+    player() {
         let players: Player[] = []
 
         this.body()
@@ -536,8 +536,8 @@ class SikigamiParser extends AbstParser{
         return players
     }
 
-    discuss(){
-        let logs:Log[] = []
+    discuss() {
+        let logs: Log[] = []
 
         if (!this.isDaytime) return []
 
@@ -558,10 +558,10 @@ class SikigamiParser extends AbstParser{
 
                 logs.push(log)
             })
-            return logs
+        return logs
     }
 
-    isUnvote(){
+    isUnvote() {
         return this.isDaytime() && $(".system-vote").length > 0
     }
 
@@ -585,7 +585,7 @@ class MeatMemo {
     constructor(serverName: iServer) {
         this.serverName = serverName || "wakamete"
 
-        switch(this.serverName){
+        switch (this.serverName) {
             case "wakamete":
                 this.parser = new WakameteParser()
                 break
@@ -808,7 +808,7 @@ class MeatMemo {
 
     on() {
 
-        if(this.serverName == "wakamete"){
+        if (this.serverName == "wakamete") {
             this.addUtility_wakamete()
         }
 
@@ -823,7 +823,7 @@ class MeatMemo {
         this.refresh()
     }
 
-    addUtility_wakamete(){
+    addUtility_wakamete() {
         $("table").eq(1).attr("id", "w_player")
         $("table[cellspacing=0]").eq(-1).attr("id", "w_textarea")
         $("table[cellpadding=0]").not(".CLSTABLE2").last().attr("id", "w_discuss")
@@ -915,11 +915,11 @@ class MeatMemo {
         }
     }
 
-    message(text:string, sec = 3){
+    message(text: string, sec = 3) {
         $("#header-message").remove()
         $("<div></div>")
             .addClass("message")
-            .attr("id","header-message")
+            .attr("id", "header-message")
             .text(text)
             .prependTo("#floatButtonArea")
         setTimeout(() => $("#header-message").remove(), sec * 1000)
@@ -978,7 +978,7 @@ class Player implements iPlayer {
     jobresult: iJobresult[]
     vote: string[][]
     death: iDeath
-    constructor(data:Partial<iPlayer>) {
+    constructor(data: Partial<iPlayer>) {
         this.no = data.no || 0
         this.name = data.name || ""
         this.vital = data.vital || "alive"
@@ -1006,18 +1006,18 @@ class Player implements iPlayer {
         this.vital = vital
     }
 
-    setJudge(day:number, judge:iFortuneResult) {
+    setJudge(day: number, judge: iFortuneResult) {
         this.jobresult.fillundef({ target: 99, judge: "notinput" }, +day)
         this.jobresult[day].judge = judge
     }
 
-    setTarget(day: number, target:number) {
+    setTarget(day: number, target: number) {
         this.jobresult.fillundef({ target: 99, judge: "notinput" }, +day)
         this.jobresult[day].target = target
     }
 
-    canCO(day:number){
-        switch (this.job){
+    canCO(day: number) {
+        switch (this.job) {
             case "fortune":
                 return day < this.death.cantco
             case "necro":
@@ -1027,7 +1027,7 @@ class Player implements iPlayer {
         }
     }
 
-    jobInitial(): string{
+    jobInitial(): string {
         return jobinitial[this.reasoning] + jobinitial[this.job]
     }
 }
@@ -1036,7 +1036,7 @@ class PlayerManager {
     list: Player[]
     indexOfName: Record<string, number>
     memo: MeatMemo
-    constructor(memo:MeatMemo) {
+    constructor(memo: MeatMemo) {
         this.list = []
         this.indexOfName = {}
         this.memo = memo
@@ -1067,7 +1067,7 @@ class PlayerManager {
     forSave() {
         return this.list.map((player) => player.forSave())
     }
-    filter(mode:string) {
+    filter(mode: string) {
         for (var player of this.list) {
             if (mode == "All" || player.vital == "alive" || player.job != "gray") {
                 $("td.player_" + player.no).show()
@@ -1101,7 +1101,7 @@ class PlayerManager {
 
     vitalCheck() {
         let vitals = this.memo.parser.vital()
-        for(let [i, vital] of vitals.entries()){
+        for (let [i, vital] of vitals.entries()) {
             this.list[i].updateVital(vital)
         }
     }
@@ -1110,7 +1110,7 @@ class PlayerManager {
         let players = this.memo.parser.player()
         this.list = players.map((p) => new Player(p))
         this.indexOfName = {}
-        for (let [i,player] of this.list.entries()){
+        for (let [i, player] of this.list.entries()) {
             this.indexOfName[player.name] = i
         }
 
@@ -1118,7 +1118,7 @@ class PlayerManager {
 
     import_death() {
         let deathList = this.memo.parser.death()
-        for(let cn in deathList){
+        for (let cn in deathList) {
             let player = this.pick(cn)!
             player.death = deathList[cn]
         }
@@ -1126,23 +1126,23 @@ class PlayerManager {
 
     import_vote() {
         let votes = this.memo.parser.vote()
-        if(!Object.keys(votes).length) return false
+        if (!Object.keys(votes).length) return false
 
         let day = votes[Object.keys(votes)[0]].day
         let votenum = votes[Object.keys(votes)[0]].targets.length
 
         for (let player of this.list) {
             player.vote.fillundef(["-"], day);
-            if(player.name in votes){
+            if (player.name in votes) {
                 player.vote[day] = votes[player.name].targets
-            } else{
-                player.vote[day].fillundef("-", votenum-1);
+            } else {
+                player.vote[day].fillundef("-", votenum - 1);
             }
         }
     }
 
     listforSelect(): iPlayerList {
-        let playersList:iPlayerList = { 99: "" }
+        let playersList: iPlayerList = { 99: "" }
         for (let player of this.list) {
             playersList[player.no] = player.name
         }
@@ -1170,7 +1170,7 @@ class PlayerManager {
 
         let namerow = $("<tr></tr>").addClass("namerow")
 
-        let a = $("<a></a>").attr("id", "filterlink_99_99" ).text("全ログ")
+        let a = $("<a></a>").attr("id", "filterlink_99_99").text("全ログ")
         $("<td></td>")
             .append(a)
             .appendTo(namerow)
@@ -1215,20 +1215,20 @@ class PlayerManager {
         //-------------------------発言数列
         for (let day = 1; day <= newestDay; day++) {
             let row = $("<tr></tr>").addClass("talknumrow")
-            let a = $("<a></a>").text(`${day + 1}日目`).attr("id",`filterlink_99_${day}`)
+            let a = $("<a></a>").text(`${day + 1}日目`).attr("id", `filterlink_99_${day}`)
             $("<td></td>")
                 .append(a)
                 .appendTo(row)
-                
+
             for (let player of this.list) {
                 let no = player.no
                 let talknum = this.memo.log.talknum(player.name, day)
 
                 let td = $("<td></td>").addClass(`player_${no}`)
-                if(talknum){
+                if (talknum) {
                     $("<a></a>")
                         .text(talknum)
-                        .attr("id",`filterlink_${no}_${day}`)
+                        .attr("id", `filterlink_${no}_${day}`)
                         .appendTo(td)
                 }
 
@@ -1239,11 +1239,11 @@ class PlayerManager {
 
         //-------------------------役職結果列
         for (let day = 1; day <= newestDay; day++) {
-            let resultrow = $("<tr></tr>").attr("id", "result_"+day).addClass("resultrow")
+            let resultrow = $("<tr></tr>").attr("id", "result_" + day).addClass("resultrow")
             $("<td></td>").text(`占霊結果 ${day + 1}日目`).appendTo(resultrow)
 
             for (let player of this.list) {
-                if ( player.canCO(day) ) {
+                if (player.canCO(day)) {
                     //占い師、霊能者で、結果があるなら
                     let select1 = createSelectBox(playersList, 99, {
                         id: `target_${player.no}_${day}`,
@@ -1260,8 +1260,8 @@ class PlayerManager {
                         .appendTo(resultrow)
                 } else {
                     $("<td></td>")
-                    .addClass("player_" + player.no)
-                    .appendTo(resultrow)
+                        .addClass("player_" + player.no)
+                        .appendTo(resultrow)
                 }
             }
             playerInfoTable.append(resultrow)
@@ -1324,7 +1324,7 @@ class PlayerManager {
             if (!id) return false
             let [i, no, day] = id.split("_")
             let judge = String($(this).val()!) as iFortuneResult
-            _this.list[+no].setJudge(+day, judge) 
+            _this.list[+no].setJudge(+day, judge)
 
             _this.refreshSummary()
             _this.coloringGray()
@@ -1346,7 +1346,7 @@ class PlayerManager {
         for (var day = 1; day <= newestDay; day++) {
             if (!this.list[0].vote[day]) continue
             let colspan = this.list[0].vote[day].length
-            $("<td></td>").text(`${day + 1}日目`).attr("colspan",colspan).appendTo(tr)
+            $("<td></td>").text(`${day + 1}日目`).attr("colspan", colspan).appendTo(tr)
         }
         voteTable.append(tr)
 
@@ -1398,7 +1398,7 @@ class PlayerManager {
         summaryTable.empty()
 
         var tr = $("<tr></tr>")
-        $("<td></td>").attr("colspan",2).appendTo(tr)
+        $("<td></td>").attr("colspan", 2).appendTo(tr)
         for (var day = 1; day <= newestDay; day++) {
             $("<td></td>").text(`${day + 1}日目`).appendTo(tr)
         }
@@ -1422,7 +1422,7 @@ class PlayerManager {
                     name = this.list[result.target].name
                     judge = resultlist[result.judge]
                 }
-                $("<td></td>").text(name+judge).appendTo(tr)
+                $("<td></td>").text(name + judge).appendTo(tr)
             }
             tr.appendTo(summaryTable)
         }
@@ -1432,13 +1432,13 @@ class PlayerManager {
             if (!deaths.length) continue
 
             let tr = $("<tr></tr>")
-            $("<td></td>").text(reasonflavor[reason]).attr("colspan",2).appendTo(tr)
+            $("<td></td>").text(reasonflavor[reason]).attr("colspan", 2).appendTo(tr)
 
             for (day = 1; day <= newestDay; day++) {
                 let cns = deaths.filter((p) => p.death.day == day).map((p) => p.name)
                 let td = $("<td></td>")
-                for (let cn of cns){
-                    $("<div></div>").text(cn).appendTo(cn)
+                for (let cn of cns) {
+                    $("<div></div>").text(cn).appendTo(td)
                 }
                 td.appendTo(tr)
             }
@@ -1518,7 +1518,7 @@ class Log {
 class LogManager {
     memo: MeatMemo
     list: Log[][]
-    constructor(memo:MeatMemo) {
+    constructor(memo: MeatMemo) {
         this.memo = memo
         this.list = []
     }
@@ -1527,7 +1527,7 @@ class LogManager {
         this.list = []
     }
 
-    load(data:iLog[][]) {
+    load(data: iLog[][]) {
         if (!data) return false
 
         this.list = []
@@ -1582,7 +1582,7 @@ class LogManager {
             let tbody = $("<tbody></tbody>", { id: "log_day" + day })
 
             let tr = $("<tr></tr>").addClass("systemlog")
-            $("<td></td>").attr("colspan",2).text(`${day + 1}日目`).appendTo(tr)
+            $("<td></td>").attr("colspan", 2).text(`${day + 1}日目`).appendTo(tr)
             tr.appendTo(tbody)
 
             for (let log of logs) {
@@ -1615,7 +1615,7 @@ class LogManager {
 
                 let content = log.content
                     .replace(/<br>/g, "\n")
-                    .replace(/<("[^"]*"|'[^']*'|[^'">])*>/g,'')
+                    .replace(/<("[^"]*"|'[^']*'|[^'">])*>/g, '')
                     .replace(/\n/g, "<br>")
 
                 $("<td></td>").addClass(log.size).html(content).appendTo(tr)
@@ -1628,10 +1628,10 @@ class LogManager {
     }
 }
 
-interface iSettingOption{
+interface iSettingOption {
     value: string
     option: Record<string, string>
-    name: string    
+    name: string
 }
 
 class SettingOption {
@@ -1649,7 +1649,7 @@ class SettingOption {
 
 class ColorSetting {
     memo: MeatMemo
-    options: Record<string, SettingOption >
+    options: Record<string, SettingOption>
     constructor(memo: MeatMemo) {
         this.memo = memo
         this.options = {}
@@ -1725,7 +1725,7 @@ class ColorSetting {
     }
 
     forSave() {
-        let result:Record<string, string> = {}
+        let result: Record<string, string> = {}
         for (let key in this.options) {
             result[key] = this.options[key].value
         }
@@ -1735,7 +1735,7 @@ class ColorSetting {
 
 class Setting {
     memo: MeatMemo
-    options: Record<string, SettingOption >
+    options: Record<string, SettingOption>
     constructor(memo: MeatMemo) {
         this.memo = memo
         this.options = {}
@@ -1777,7 +1777,7 @@ class Setting {
         })
     }
 
-    setValue(key: string, value:string) {
+    setValue(key: string, value: string) {
         if (!(key in this.options)) return false
         this.options[key].value = value
         this.save()
@@ -1804,7 +1804,7 @@ class Setting {
     }
 
     forSave() {
-        let result:{[key:string] :string} = {}
+        let result: { [key: string]: string } = {}
         for (let key in this.options) {
             result[key] = this.options[key].value
         }
@@ -1814,7 +1814,7 @@ class Setting {
 
 class Random {
     memo: MeatMemo
-    constructor(memo:MeatMemo) {
+    constructor(memo: MeatMemo) {
         this.memo = memo
     }
 
@@ -1858,18 +1858,18 @@ class Random {
             this.copy(this.haitoku())
         })
     }
-    copy(text:string) {
+    copy(text: string) {
         $("#forCopy").val(text).select()
         document.execCommand("copy")
         $("#randomMessage").text("コピーしました。")
     }
 
-    rnd(n:number):number {
+    rnd(n: number): number {
         //0～n-1の整数乱数 digitを指定するとゼロパディング
         return Math.floor(Math.random() * n)
     }
 
-    padding(num:number, digit:number):string {
+    padding(num: number, digit: number): string {
         //ゼロパディング
         let txt = "0000000000" + num
         return txt.slice(-digit)
@@ -1937,7 +1937,7 @@ class Style {
         } else {
             $("#memoContainer").addClass("layout-normal")
         }
-        
+
         $("<style></style>").text(`:root{--theme-color:${theme_color}; --sub-color:${sub_color};}`).appendTo($("head"))
     }
 }
@@ -1959,11 +1959,11 @@ class Utility {
 
     init() {
 
-        if(/game_play/.test(location.href)) return false
+        if (/game_play/.test(location.href)) return false
 
         this.receiveKeyResponse()
 
-        if(this.memo.serverName != "wakamete") return false
+        if (this.memo.serverName != "wakamete") return false
 
         this.memo.playerManager.coloring()
         this.setAlertVote()
@@ -2039,22 +2039,22 @@ class Utility {
         if (this.memo.settingIs("send_support", "ctrl")) {
             $(window).on("keydown", function (e) {
                 if (e.ctrlKey && e.keyCode == 13) {
-                    setTimeout(function(){
-                        $("textarea").val("")                    
+                    setTimeout(function () {
+                        $("textarea").val("")
                     }, 50)
                     var length = document.forms.length
-                    document.forms[length-1].submit()
+                    document.forms[length - 1].submit()
                 }
             })
         }
         if (this.memo.settingIs("send_support", "shift")) {
             $(window).on("keydown", function (e) {
                 if (e.shiftKey && e.keyCode == 13) {
-                    setTimeout(function(){
-                        $("textarea").val("")                    
+                    setTimeout(function () {
+                        $("textarea").val("")
                     }, 50)
                     var length = document.forms.length
-                    document.forms[length-1].submit()
+                    document.forms[length - 1].submit()
                 }
             })
         }
@@ -2095,7 +2095,7 @@ class Utility {
             })
     }
 
-    editSpeakField(val:string) {
+    editSpeakField(val: string) {
         $("textarea").eq(0).val(val)
     }
 

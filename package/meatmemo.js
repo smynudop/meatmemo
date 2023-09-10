@@ -1188,7 +1188,7 @@ class PlayerManager {
                 let cns = deaths.filter((p) => p.death.day == day).map((p) => p.name);
                 let td = $("<td></td>");
                 for (let cn of cns) {
-                    $("<div></div>").text(cn).appendTo(cn);
+                    $("<div></div>").text(cn).appendTo(td);
                 }
                 td.appendTo(tr);
             }

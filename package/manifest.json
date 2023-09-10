@@ -1,32 +1,26 @@
 {
-    "manifest_version": 2,
-    "name": "MeatMemo",
-    "description": "人狼サーバー「続わかめて」や「桃栗三年」でゲームをプレイする人向けの、ゲームを快適にする拡張機能です。操作方法などは「わかめてメモ」を参考にしています。",
-    "version": "1.2.4",
-    "icons": {
-        "16": "icon/icon_16.png",
-        "48": "icon/icon_48.png",
-        "128": "icon/icon_128.png"
-    },
-    "content_scripts": [
-        {
-            "matches": [
-                "http://jinrou.aa0.netvolante.jp/~jinrou/cgi_jinro.cgi",
-                "http://124.32.233.3/~jinrou/cgi_jinro.cgi",
-                "http://www7a.biglobe.ne.jp/~kuri/cgi_jinro.cgi",
-                "http://alicegame.xsrv.jp/takane/game_up.php?*",
-                "http://alicegame.xsrv.jp/takane/game_play.php?*"
-            ],
-            "js": [
-                "jquery-3.6.0.slim.min.js",
-                "meatmemo.js"
-            ],
-            "css": [
-                "rewrite.css",
-                "meatmemo.css"
-            ],
-            "all_frames": true
-        }
-    ],
-    "permissions": []
+  "manifest_version": 2,
+  "name": "MeatMemo",
+  "description": "人狼サーバー「続わかめて」や「桃栗三年」でゲームをプレイする人向けの、ゲームを快適にする拡張機能です。操作方法などは「わかめてメモ」を参考にしています。",
+  "version": "1.2.5",
+  "icons": {
+    "16": "icon/icon_16.png",
+    "48": "icon/icon_48.png",
+    "128": "icon/icon_128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://jinrou.aa0.netvolante.jp/~jinrou/cgi_jinro.cgi",
+        "http://124.32.233.3/~jinrou/cgi_jinro.cgi",
+        "http://www7a.biglobe.ne.jp/~kuri/cgi_jinro.cgi",
+        "http://alicegame.xsrv.jp/takane/game_up.php?*",
+        "http://alicegame.xsrv.jp/takane/game_play.php?*"
+      ],
+      "js": ["jquery-3.6.0.slim.min.js", "meatmemo.js"],
+      "css": ["rewrite.css", "meatmemo.css"],
+      "all_frames": true
+    }
+  ],
+  "permissions": []
 }
