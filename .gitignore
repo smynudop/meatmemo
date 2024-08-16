@@ -1,3 +1,4 @@
 package/archive
 /**/*.zip
 /src/node_modules
+meatmemo/
