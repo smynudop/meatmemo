@@ -1,8 +1,8 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "MeatMemo",
   "description": "人狼サーバー「続わかめて」や「桃栗三年」でゲームをプレイする人向けの、ゲームを快適にする拡張機能です。操作方法などは「わかめてメモ」を参考にしています。",
-  "version": "1.2.5",
+  "version": "2.0.0",
   "icons": {
     "16": "icon/icon_16.png",
     "48": "icon/icon_48.png",
@@ -22,5 +22,5 @@
       "all_frames": true
     }
   ],
-  "permissions": []
+  "permissions": ["activeTab"]
 }
