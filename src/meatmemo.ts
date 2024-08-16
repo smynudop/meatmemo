@@ -1,14 +1,10 @@
-"use strict"
-
-
-Array.prototype.fillundef = function (def, lastindex) {
-    lastindex = lastindex + 1 || this.length
-    for (let i = 0; i < lastindex; i++) {
-        if (this[i] === null || this[i] === undefined) {
-            this[i] = JSON.parse(JSON.stringify(def))
-        }
-    }
-}
+import { AbstParser } from "./Parser/IParser"
+import { WakameteParser } from "./Parser/WakameteParser"
+import { SikigamiParser } from "./Parser/SikigamiParser"
+import { iPlayer, Player } from "./player"
+import { iLog, Log } from "./log"
+import { iFortuneResult, iJob, iReasoning } from "./constants"
+import { joblist, resultlist, reasoninglist } from "./constants"
 
 function createSelectBox(option: Record<string, string>, selected: number | string, attr: Record<string, string>) {
 
@@ -59,43 +55,7 @@ const COLORLIST = {
     23: "黒",
 }
 
-const joblist = {
-    gray: "",
-    fortune: "占い",
-    necro: "霊能",
-    share: "共有",
-    guard: "狩人",
-    cat: "猫又",
-    beast: "人外",
-}
 
-const reasoninglist = {
-    gray: "",
-    real: "真",
-    fake: "偽",
-    villager: "村人",
-    madman: "狂人",
-    wolf: "人狼",
-    fox: "妖狐",
-}
-
-const resultlist = { notinput: "", white: "○", black: "●" }
-
-const jobinitial = {
-    fortune: "占",
-    necro: "霊",
-    share: "共",
-    cat: "猫",
-    guard: "狩",
-    wolf: "狼",
-    madman: "狂",
-    fox: "狐",
-    villager: "村",
-    real: "真",
-    fake: "偽",
-    beast: "外",
-    gray: "",
-}
 
 const themeList = {
     crimson: { main: "crimson", sub: "#EC365A" },
@@ -217,359 +177,9 @@ const colorSettingDefault: Record<string, iColorSetting> = {
     },
 }
 
-type iFortuneResult = keyof typeof resultlist
-type iJob = keyof typeof joblist
-type iReasoning = keyof typeof reasoninglist
-
-interface iVote {
-    day: number
-    targets: string[]
-}
-
-abstract class AbstParser {
-    abstract body(): JQuery<HTMLElement>
-    abstract villageNo(): string
-    abstract today(): number
-    abstract isDaytime(): boolean
-    abstract eachPlayer(no: number, html: string): Player
-    abstract player(): Player[]
-    abstract vital(): iVital[]
-    abstract vote(): Record<string, iVote>
-    abstract death(): Record<string, iDeath>
-    abstract discuss(): Log[]
-    abstract isUnvote(): boolean
-}
-
-class WakameteParser extends AbstParser {
-    constructor() {
-        super()
-    }
-
-    body() {
-        return $("body")
-    }
-
-    villageNo() {
-        return $("title").text().slice(0, 6)
-    }
-
-    today() {
-        var day = /<font size="\+2">(\d{1,2})/.exec($("body").html())
-        return day ? +day[1] - 1 : 0
-    }
-
-    isDaytime() {
-        return $("body").attr("bgcolor") != "#000000";
-    }
-
-    vital() {
-        let vitals: iVital[] = []
-        $("#w_player")
-            .find("td:odd")
-            .each((i, v) => {
-                if (!$(v).html()) return false
-                vitals.push(/生存中/.test($(v).html()) ? "alive" : "death")
-            })
-        return vitals
-    }
-
-    death() {
-        let deathList: HTMLElement[] = []
-        let result: Record<string, iDeath> = {}
-        $("#w_discuss")
-            .find("td[colspan='2']")
-            .each((i, tr) => {
-                if (/(で発見|結果処刑|突然死|猫又の呪い)/.test($(tr).text())) {
-                    deathList.push(tr)
-                }
-            })
-
-        let day = this.today()
-        let cantco = this.today()
-        let isdaytime = this.isDaytime()
-
-        for (let log of deathList) {
-            let cn = $(log).find("b").eq(0).text()
-            let text = $(log).text()
-            let reason = ""
-            if (/無残な姿/.test(text)) reason = "bite"
-            if (/死体で発見/.test(text)) reason = "note"
-            if (/村民協議の結果|猫又の呪い/.test(text)) {
-                reason = "exec"
-                isdaytime ? day-- : cantco++
-            }
-            if (/突然死/.test(text)) {
-                reason = "sudden"
-                cantco++
-            }
-            result[cn] = {
-                reason: reason,
-                cantco: cantco,
-                day: day,
-            }
-        }
-        return result
-    }
-
-    vote() {
-        let result: Record<string, iVote> = {}
-
-        let votelog: HTMLElement[] = []
-        $("#w_discuss")
-            .find("td[colspan='2']")
-            .each(function (i, v) {
-                if (/\d{1,2}日目 投票結果。/.test($(v).text())) {
-                    votelog.unshift(v)
-                }
-            })
-        if (!votelog.length) return {}
-
-        let daystr = $(votelog[0])
-            .text()
-            .match(/(\d{1,2})日目 投票結果。/)
-        if (!daystr) return {}
-        let day = +daystr[1] - 1
-
-        for (let times = 0; times < votelog.length; times++) {
-            $(votelog[times])
-                .find("tr")
-                .each((i, vote) => {
-                    let voter = $(vote).find("b").eq(0).text()
-                    let target = $(vote).find("b").eq(1).text()
-                    if (voter) {
-                        if (!result[voter]) {
-                            result[voter] = { day: day, targets: [] }
-                        }
-                        result[voter].targets.push(target)
-                    }
-
-                })
-        }
-        return result
-    }
-
-    eachPlayer(no: number, html: string) {
-        let name = html.split("<br>")[0]
-        let vital: iVital = /生存中/.test(html) ? "alive" : "death"
-        return new Player({
-            no: no,
-            name: name,
-            vital: vital,
-        })
-    }
-
-    player() {
-        let players: Player[] = []
-        $("#w_player")
-            .find("td:odd")
-            .each((i, v) => {
-                let html = $(v).html()
-                if (!html) return false
-
-                let player = this.eachPlayer(i, html)
-                players.push(player)
-            })
-        return players
-    }
-
-    discuss() {
-        let logs: Log[] = []
-        if (!this.isDaytime) return []
-        $("#w_discuss")
-            .find("tr")
-            .each((i, tr) => {
-                if ($(tr).children().length == 2) {
-                    let name = $(tr).children().eq(0).find("b").eq(0).html()
-                    let content = $(tr).children().eq(1).html()
-                    let namehtml = $(tr).children().eq(0).html()
-                    let colorhtml = namehtml.match(/color="(.+?)"/)
-                    let color = colorhtml ? colorhtml[1] : "#000000"
-
-                    let contenthtml = $(tr).children().eq(1).html()
-                    let size = contenthtml.includes('size="+1"') ? "big" :
-                        contenthtml.includes('size="-1"') ? "small" : "normal"
-
-                    let log = new Log({
-                        name: name,
-                        color: color,
-                        size: size,
-                        content: content,
-                    })
-
-                    logs.push(log)
-                }
-            })
-        return logs
-    }
-
-    isUnvote() {
-        return /<font size="\+2">投票/.test($("body").html())
-    }
-
-}
-
-class SikigamiParser extends AbstParser {
-    constructor() {
-        super()
-    }
-
-    body() {
-        return $("body")
-    }
-
-    villageNo() {
-        return location.href.match(/room_no=(\d+)/)![1]
-    }
-
-    today() {
-        var timetable = $("table.time-table")
-        if (timetable.length == 0) {
-            return 0
-        }
-        var day = timetable.eq(0).html().match(/(\d+) 日目/)
-        return day ? +day[1] - 1 : 0
-    }
-
-    isDaytime() {
-        return !/game_night\.css/.test($("head").html())
-    }
-
-    vital() {
-        let vitals: iVital[] = []
-
-        this.body()
-            .find("div.player table td:odd")
-            .each((i, v) => {
-                if (!$(v).html()) return false
-                vitals.push(/生存中/.test($(v).html()) ? "alive" : "death")
-            })
-        return vitals
-    }
-
-    death() {
-        let deathList: HTMLElement[] = []
-        let result: Record<string, iDeath> = {}
-        $("table.dead-type td")
-            .each((i, tr) => {
-                if (/(で発見|結果処刑|突然死|猫又の呪い)/.test($(tr).text())) {
-                    deathList.push(tr)
-                }
-            })
-
-        let day = this.today()
-        let cantco = this.today()
-        let isdaytime = this.isDaytime()
-
-        for (let log of deathList) {
-            let cn = $(log).text().split(" は")[0]
-            let text = $(log).text()
-            let reason = ""
-            if (/無残な姿/.test(text)) reason = "bite"
-            if (/死体で発見/.test(text)) reason = "note"
-            if (/投票の結果|猫又の呪い/.test(text)) {
-                reason = "exec"
-                isdaytime ? day-- : cantco++
-            }
-            if (/突然死/.test(text)) {
-                reason = "sudden"
-                cantco++
-            }
-            result[cn] = {
-                reason: reason,
-                cantco: cantco,
-                day: day,
-            }
-        }
-        return result
-    }
-
-    vote() {
-        let result: Record<string, iVote> = {}
-
-        let tables = $("table.vote-list")
-        if (!tables.length) return result
-
-        tables.each((i, table) => {
-            let day = $(table).find("td").eq(0).text().match(/(\d+) 日目/)![1]
-            $(table)
-                .find("tr")
-                .each((i, vote) => {
-                    let voter = $(vote).find(".vote-name").eq(0).text()
-                    let target = $(vote).find(".vote-name").eq(1).text()
-                    if (voter) {
-                        if (!result[voter]) {
-                            result[voter] = { day: +day, targets: [] }
-                        }
-                        result[voter].targets.push(target)
-                    }
-
-                })
-        })
-
-
-        return result
-    }
-
-    eachPlayer(no: number, html: string) {
-        let name = html.split("<br>")[0].split(">").pop()
-        let vital: iVital = /生存中/.test(html) ? "alive" : "death"
-        return new Player({
-            no: no,
-            name: name,
-            vital: vital,
-        })
-    }
-
-    player() {
-        let players: Player[] = []
-
-        this.body()
-            .find("div.player table td:odd")
-            .each((i, v) => {
-                let html = $(v).html()
-                if (!html) return false
-
-                let player = this.eachPlayer(i, html)
-                players.push(player)
-
-            })
-        return players
-    }
-
-    discuss() {
-        let logs: Log[] = []
-
-        if (!this.isDaytime) return []
-
-        this.body()
-            .find("tr.user-talk")
-            .each((i, tr) => {
-                let name = $(tr).find("td.user-name").text().slice(1)
-                let content = $(tr).children().eq(1).html()
-                let namehtml = $(tr).find("td.user-name").html()
-                let color = namehtml.match(/color="(.+?)"/)![1]
-
-                let log = new Log({
-                    name: name,
-                    color: color,
-                    content: content,
-                    size: "normal"
-                })
-
-                logs.push(log)
-            })
-        return logs
-    }
-
-    isUnvote() {
-        return this.isDaytime() && $(".system-vote").length > 0
-    }
-
-}
-
 type iServer = "wakamete" | "sikigami"
 
-class MeatMemo {
+export class MeatMemo {
     parser: AbstParser
     serverName: iServer
     playerManager: PlayerManager
@@ -942,95 +552,17 @@ class MeatMemo {
     }
 }
 
-interface iJobresult {
-    target: number
-    judge: iFortuneResult
-}
 
-interface iDeath {
-    reason: string | null
-    day: number | null
-    cantco: number
-}
 
-type iVital = "death" | "alive"
 
-interface iPlayer {
-    no: number
-    name: string
-    vital: iVital
-    job: iJob
-    reasoning: iReasoning
-    jobresult: iJobresult[]
-    vote: string[][]
-    death: iDeath
-}
+
+
+
 
 type iPlayerList = Record<string, string>
 
 
-class Player implements iPlayer {
-    no: number
-    name: string
-    vital: iVital
-    job: iJob
-    reasoning: iReasoning
-    jobresult: iJobresult[]
-    vote: string[][]
-    death: iDeath
-    constructor(data: Partial<iPlayer>) {
-        this.no = data.no || 0
-        this.name = data.name || ""
-        this.vital = data.vital || "alive"
-        this.job = data.job || "gray"
-        this.reasoning = data.reasoning || "gray"
-        this.jobresult = data.jobresult || []
-        this.vote = data.vote || []
-        this.death = data.death || { reason: null, day: null, cantco: 99 }
-    }
 
-    forSave() {
-        return {
-            name: this.name,
-            no: this.no,
-            vital: this.vital,
-            job: this.job,
-            reasoning: this.reasoning,
-            jobresult: this.jobresult,
-            vote: this.vote,
-            death: this.death,
-        }
-    }
-
-    updateVital(vital: iVital) {
-        this.vital = vital
-    }
-
-    setJudge(day: number, judge: iFortuneResult) {
-        this.jobresult.fillundef({ target: 99, judge: "notinput" }, +day)
-        this.jobresult[day].judge = judge
-    }
-
-    setTarget(day: number, target: number) {
-        this.jobresult.fillundef({ target: 99, judge: "notinput" }, +day)
-        this.jobresult[day].target = target
-    }
-
-    canCO(day: number) {
-        switch (this.job) {
-            case "fortune":
-                return day < this.death.cantco
-            case "necro":
-                return day < this.death.cantco && day > 1
-            default:
-                return false
-        }
-    }
-
-    jobInitial(): string {
-        return jobinitial[this.reasoning] + jobinitial[this.job]
-    }
-}
 
 class PlayerManager {
     list: Player[]
@@ -1483,35 +1015,6 @@ class PlayerManager {
                 $(e).removeClass().addClass(color)
             }
         })
-    }
-}
-
-interface iLog {
-    name: string
-    color: string
-    size: string
-    content: string
-}
-
-class Log {
-    name: string
-    color: string
-    size: string
-    content: string
-    constructor(data: iLog) {
-        this.name = data.name
-        this.color = data.color
-        this.size = data.size
-        this.content = data.content
-    }
-
-    forSave(): iLog {
-        return {
-            name: this.name,
-            color: this.color,
-            content: this.content,
-            size: this.size
-        }
     }
 }
 
@@ -2107,7 +1610,4 @@ class Utility {
     }
 }
 
-//村画面でないときは出さない
-if ($("body").attr("bgcolor") != "#fee3aa") {
-    const meatmemo = new MeatMemo(/cgi/.test(location.href) ? "wakamete" : "sikigami")
-}
+
