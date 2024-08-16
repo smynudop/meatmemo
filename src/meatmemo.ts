@@ -1,14 +1,14 @@
-import { AbstParser } from "./Parser/IParser"
+import { IParser } from "./Parser/IParser"
 import { WakameteParser } from "./Parser/WakameteParser"
 import { SikigamiParser } from "./Parser/SikigamiParser"
-import { iPlayer, Player } from "./player"
-import { iLog, Log } from "./log"
-import { iFortuneResult, iJob, iReasoning } from "./constants"
-import { joblist, resultlist, reasoninglist } from "./constants"
+import { IPlayer, Player } from "./player"
+import { ILog, Log } from "./log"
+import { IFortuneResult, IJob, IReasoning } from "./constants"
+import { JOB_LIST, RESULT_LIST, REASONING_LIST } from "./constants"
 
-function createSelectBox(option: Record<string, string>, selected: number | string, attr: Record<string, string>) {
+function createSelectBox(option: Record<string, string>, selected: number | string, attr: Record<string, string>): JQuery<HTMLSelectElement> {
 
-    let select = $("<select></select>")
+    let select = $("<select></select>") as JQuery<HTMLSelectElement>
 
     for (let k in attr) {
         select.attr(k, attr[k])
@@ -177,11 +177,8 @@ const colorSettingDefault: Record<string, iColorSetting> = {
     },
 }
 
-type iServer = "wakamete" | "sikigami"
-
 export class MeatMemo {
-    parser: AbstParser
-    serverName: iServer
+    parser: IParser
     playerManager: PlayerManager
     log: LogManager
     setting: Setting
@@ -192,17 +189,8 @@ export class MeatMemo {
     filterSetting: Record<string, string>
     isAutoReload: boolean
     newestImportDay: number
-    constructor(serverName: iServer) {
-        this.serverName = serverName || "wakamete"
-
-        switch (this.serverName) {
-            case "wakamete":
-                this.parser = new WakameteParser()
-                break
-            case "sikigami":
-                this.parser = new SikigamiParser()
-                break
-        }
+    constructor(parser: IParser) {
+        this.parser = parser
 
         this.playerManager = new PlayerManager(this)
         this.log = new LogManager(this)
@@ -418,7 +406,7 @@ export class MeatMemo {
 
     on() {
 
-        if (this.serverName == "wakamete") {
+        if (this.parser.name == "wakamete") {
             this.addUtility_wakamete()
         }
 
@@ -484,8 +472,8 @@ export class MeatMemo {
         this.isAutoReload = memodata.isAutoReload as boolean
         if (memodata.villageNo != this.villageNo) return false
 
-        this.playerManager.load(memodata.playerInfo as Partial<iPlayer>[])
-        this.log.load(memodata.discussLog as iLog[][])
+        this.playerManager.load(memodata.playerInfo as Partial<IPlayer>[])
+        this.log.load(memodata.discussLog as ILog[][])
 
         if (memodata.filterSetting) {
             this.filterSetting = memodata.filterSetting as Record<string, string>
@@ -579,7 +567,7 @@ class PlayerManager {
         this.indexOfName = {}
     }
 
-    load(data: Partial<iPlayer>[]) {
+    load(data: Partial<IPlayer>[]) {
         if (!data) return false
         this.list = []
         this.indexOfName = {}
@@ -723,7 +711,7 @@ class PlayerManager {
         $("<td></td>").text("CO").appendTo(jobrow)
 
         for (let player of this.list) {
-            let select = createSelectBox(joblist, player.job, {
+            let select = createSelectBox(JOB_LIST, player.job, {
                 id: `player_${player.no}_job`,
                 class: "jobselect",
             })
@@ -736,7 +724,7 @@ class PlayerManager {
         $("<td></td>").text("推理").appendTo(reasoningrow)
 
         for (let player of this.list) {
-            let select = createSelectBox(reasoninglist, player.reasoning, {
+            let select = createSelectBox(REASONING_LIST, player.reasoning, {
                 id: `player_${player.no}_reasoning`,
                 class: "reasoningselect",
             })
@@ -781,7 +769,7 @@ class PlayerManager {
                         id: `target_${player.no}_${day}`,
                         class: "jobtarget",
                     })
-                    let select2 = createSelectBox(resultlist, "notinput", {
+                    let select2 = createSelectBox(RESULT_LIST, "notinput", {
                         id: `judge_${player.no}_${day}`,
                         class: "jobjudge",
                     })
@@ -819,7 +807,7 @@ class PlayerManager {
             let id = $(this).attr("id")
             if (!id) return false
             let [i, no, day] = id.split("_")
-            _this.list[+no].job = String($(this).val()!) as iJob
+            _this.list[+no].job = String($(this).val()!) as IJob
 
             _this.refresh()
             _this.refreshJobInitial()
@@ -831,7 +819,7 @@ class PlayerManager {
             let id = $(this).attr("id")
             if (!id) return false
             let [i, no, day] = id.split("_")
-            _this.list[+no].reasoning = String($(this).val()!) as iReasoning
+            _this.list[+no].reasoning = String($(this).val()!) as IReasoning
 
             _this.refreshJobInitial()
             _this.coloring()
@@ -855,7 +843,7 @@ class PlayerManager {
             let id = $(this).attr("id")
             if (!id) return false
             let [i, no, day] = id.split("_")
-            let judge = String($(this).val()!) as iFortuneResult
+            let judge = String($(this).val()!) as IFortuneResult
             _this.list[+no].setJudge(+day, judge)
 
             _this.refreshSummary()
@@ -952,7 +940,7 @@ class PlayerManager {
                 if (player.jobresult[day] && player.jobresult[day].target != 99) {
                     let result = player.jobresult[day]
                     name = this.list[result.target].name
-                    judge = resultlist[result.judge]
+                    judge = RESULT_LIST[result.judge]
                 }
                 $("<td></td>").text(name + judge).appendTo(tr)
             }
@@ -1030,7 +1018,7 @@ class LogManager {
         this.list = []
     }
 
-    load(data: iLog[][]) {
+    load(data: ILog[][]) {
         if (!data) return false
 
         this.list = []
@@ -1045,7 +1033,7 @@ class LogManager {
     }
 
     forSave() {
-        let result: iLog[][] = []
+        let result: ILog[][] = []
         this.list.forEach((logs) => {
             let l = logs.map((log) => log.forSave())
             result.push(l)
@@ -1323,7 +1311,7 @@ class Random {
 
     init() {
 
-        if (this.memo.serverName != "wakamete") {
+        if (this.memo.parser.name != "wakamete") {
             return false
         }
 
@@ -1466,7 +1454,7 @@ class Utility {
 
         this.receiveKeyResponse()
 
-        if (this.memo.serverName != "wakamete") return false
+        if (this.memo.parser.name != "wakamete") return false
 
         this.memo.playerManager.coloring()
         this.setAlertVote()

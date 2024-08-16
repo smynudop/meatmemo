@@ -1,9 +1,10 @@
-import { AbstParser } from "./IParser"
+import { IParser } from "./IParser"
 import { Player } from "../player"
 import { Log } from "../log"
-export class SikigamiParser extends AbstParser {
+export class SikigamiParser implements IParser {
+    name: string = "sikigami"
+
     constructor() {
-        super()
     }
 
     body() {

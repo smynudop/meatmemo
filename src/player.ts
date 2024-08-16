@@ -1,27 +1,27 @@
-import type { iFortuneResult, iJob, iReasoning, iJobresult } from "./constants"
-import { jobinitial } from "./constants"
+import type { IFortuneResult, IJob, IReasoning, IJobResult } from "./constants"
+import { JOB_INITIAL } from "./constants"
 
-export interface iPlayer {
+export interface IPlayer {
     no: number
     name: string
     vital: iVital
-    job: iJob
-    reasoning: iReasoning
-    jobresult: iJobresult[]
+    job: IJob
+    reasoning: IReasoning
+    jobresult: IJobResult[]
     vote: string[][]
     death: iDeath
 }
 
-export class Player implements iPlayer {
+export class Player implements IPlayer {
     no: number
     name: string
     vital: iVital
-    job: iJob
-    reasoning: iReasoning
-    jobresult: iJobresult[]
+    job: IJob
+    reasoning: IReasoning
+    jobresult: IJobResult[]
     vote: string[][]
     death: iDeath
-    constructor(data: Partial<iPlayer>) {
+    constructor(data: Partial<IPlayer>) {
         this.no = data.no || 0
         this.name = data.name || ""
         this.vital = data.vital || "alive"
@@ -49,7 +49,7 @@ export class Player implements iPlayer {
         this.vital = vital
     }
 
-    setJudge(day: number, judge: iFortuneResult) {
+    setJudge(day: number, judge: IFortuneResult) {
         this.jobresult.fillundef({ target: 99, judge: "notinput" }, +day)
         this.jobresult[day].judge = judge
     }
@@ -71,6 +71,6 @@ export class Player implements iPlayer {
     }
 
     jobInitial(): string {
-        return jobinitial[this.reasoning] + jobinitial[this.job]
+        return JOB_INITIAL[this.reasoning] + JOB_INITIAL[this.job]
     }
 }

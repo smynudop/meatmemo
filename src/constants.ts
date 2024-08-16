@@ -1,6 +1,6 @@
-export const resultlist = { notinput: "", white: "○", black: "●" }
+export const RESULT_LIST = { notinput: "", white: "○", black: "●" }
 
-export const joblist = {
+export const JOB_LIST = {
     gray: "",
     fortune: "占い",
     necro: "霊能",
@@ -10,7 +10,7 @@ export const joblist = {
     beast: "人外",
 }
 
-export const reasoninglist = {
+export const REASONING_LIST = {
     gray: "",
     real: "真",
     fake: "偽",
@@ -20,7 +20,13 @@ export const reasoninglist = {
     fox: "妖狐",
 }
 
-export const jobinitial = {
+
+
+export type IFortuneResult = keyof typeof RESULT_LIST
+export type IJob = keyof typeof JOB_LIST
+export type IReasoning = keyof typeof REASONING_LIST
+
+export const JOB_INITIAL = {
     fortune: "占",
     necro: "霊",
     share: "共",
@@ -34,13 +40,9 @@ export const jobinitial = {
     fake: "偽",
     beast: "外",
     gray: "",
-}
+} satisfies Record<IJob | IReasoning, string>
 
-export type iFortuneResult = keyof typeof resultlist
-export type iJob = keyof typeof joblist
-export type iReasoning = keyof typeof reasoninglist
-
-export interface iJobresult {
+export interface IJobResult {
     target: number
-    judge: iFortuneResult
+    judge: IFortuneResult
 }

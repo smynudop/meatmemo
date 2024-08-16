@@ -1,10 +1,11 @@
-import { AbstParser } from "./IParser"
+import { IParser } from "./IParser"
 import { Player } from "../player"
 import { Log } from "../log"
 
-export class WakameteParser extends AbstParser {
+export class WakameteParser implements IParser {
+    name: string = "wakamete"
+
     constructor() {
-        super()
     }
 
     body() {
